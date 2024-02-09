@@ -7,7 +7,7 @@ local SCYTHE_EFFECT_ID = Isaac.GetEntityVariantByName("Scythe Swing")
 local DAMAGE_MULTIPLIER = 2.5
 local clubOffset = Vector(-5,0)
 local scythe_cache = nil
-local maxAnimTimer = 0.5
+local maxAnimTimer = 0.4
 local animTimer = 0
 
 function scytheMod:SwingClub()
