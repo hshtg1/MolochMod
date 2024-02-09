@@ -1,1 +1,2 @@
-This is the first version of the Moloch Mod
+# MolochMod
+This the first version of the MolochMod
