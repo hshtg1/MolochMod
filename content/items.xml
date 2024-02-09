@@ -1,0 +1,11 @@
+<!--
+
+    Last used ID: 0
+    Increment the number above when adding new items!!!
+
+-->
+
+<items gfxroot="gfx/items/" version="1">
+    <!-- Items -->
+    <active id="0" name="Scythe" description="Moloch's scythe" gfx="item_pipe.png" maxcharges="90" chargetype="timed" quality="2" tags="offensive" />
+</items>
