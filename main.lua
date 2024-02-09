@@ -5,19 +5,19 @@ local sfx = SFXManager()
 -- Setup some constants.
 local SCYTHE_EFFECT_ID = Isaac.GetEntityVariantByName("Scythe Swing")
 local DAMAGE_MULTIPLIER = 2.5
-local clubOffset = Vector(-5,0)
+local scytheOffset = Vector(-5,0)
 local scythe_cache = nil
-local maxAnimTimer = 0.4
+local maxAnimTimer = 0.6
 local animTimer = 0
 
-function scytheMod:SwingClub()
+function scytheMod:SwingScythe()
+  animTimer = animTimer - 1/60
     if  Input.GetActionValue(ButtonAction.ACTION_SHOOTLEFT, 0) > 0.5 or
         Input.GetActionValue(ButtonAction.ACTION_SHOOTRIGHT, 0) > 0.5 or
         Input.GetActionValue(ButtonAction.ACTION_SHOOTUP, 0) > 0.5 or
         Input.GetActionValue(ButtonAction.ACTION_SHOOTDOWN, 0) > 0.5
      then
         local sprite = scythe_cache:GetSprite()
-        animTimer = animTimer - 1/60
         if sprite:IsPlaying("Swing") == false and animTimer <= 0 then
             sprite:Play("Swing", true)
             animTimer = maxAnimTimer
@@ -40,7 +40,7 @@ function scytheMod:SwingClub()
     end
 end
 
-scytheMod:AddCallback(ModCallbacks.MC_POST_RENDER, scytheMod.SwingClub)
+scytheMod:AddCallback(ModCallbacks.MC_POST_RENDER, scytheMod.SwingScythe)
 
 --Dont allow the player to shoot tears
 function SetBlindfold(player, enabled, modifyCostume)
@@ -81,12 +81,12 @@ local function onStart(_,bool)
     scythe_cache = effect
 
     --set initial sprite offsets
-    local sprite = scythe_cache:GetSprite()
-    local rot = 0
-    sprite.Rotation = rot + 70
-    local offset = Vector(-5,0)
-    scythe_cache.DepthOffset = 10
-    sprite.Offset = offset
+    -- local sprite = scythe_cache:GetSprite()
+    -- local rot = 0
+    -- sprite.Rotation = rot+70
+    -- local offset = Vector(-5,0)
+    -- scythe_cache.DepthOffset = 10
+    -- sprite.Offset = offset
 end
 
 scytheMod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, onStart)
@@ -105,21 +105,33 @@ function scytheMod:ScytheEffectUpdate(scythe)
     local FireDirection = player:GetFireDirection()
     local MovDirection = player:GetMovementDirection()
     local rot = (FireDirection-3) * 90
-    sprite.Rotation = rot + 70
+    sprite.Rotation = rot
     --set offset according to fire direction and mov direction
-    local offset = Vector(-5,0)
+    local offset = Vector(0,5)
     scythe.DepthOffset = 10
-    if(FireDirection  == 1 or FireDirection == 2 
-      or MovDirection == 1 or MovDirection == 2) 
+    if(FireDirection  == 1 
+      or MovDirection == 1) 
       then
-      offset = Vector(10,-10)
+      offset = Vector(0,-15)
+      scythe.DepthOffset = -10
+    end
+    if(FireDirection  == 0 
+      or MovDirection == 0) 
+      then
+      offset = Vector(-10,-15)
+      scythe.DepthOffset = -10
+    end
+    if(FireDirection  == 2 
+      or MovDirection == 2) 
+      then
+      offset = Vector(10,-15)
       scythe.DepthOffset = -10
     end
         sprite.Offset = offset
     if FireDirection == -1 then
       --find the minimal angle distance between target rotation and sprite rotation
     local rot = (MovDirection-3)*90
-    sprite.Rotation = rot + 70
+    sprite.Rotation = rot
     -- local rawDiff = math.abs(sprite.Rotation-rot)
     -- local modDiff = math.fmod(rawDiff, 360)
     -- local dist = modDiff
