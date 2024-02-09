@@ -1,4 +1,4 @@
-local scytheMod = RegisterMod("Repentogon Null Capsule Example", 1)
+local scytheMod = RegisterMod("MolochMod", 1)
 local sfx = SFXManager()
 
 
@@ -23,6 +23,19 @@ function scytheMod:SwingClub()
             animTimer = maxAnimTimer
             sfx:Play(SoundEffect.SOUND_SWORD_SPIN)
         end
+        
+        if sprite:IsFinished("Swing") then
+          local enemies = Isaac.GetRoomEntities()
+
+            for _, enemy in ipairs(enemies) do
+              if enemy:IsVulnerableEnemy() and enemy:IsActiveEnemy()
+              then
+                local data = scythe_cache:GetData()
+                data.HitBlacklist = data.HitBlacklist or {}
+                data.HitBlacklist[GetPtrHash(enemy)] = false
+              end
+            end
+          end
         sprite:Update()
     end
 end
@@ -66,6 +79,14 @@ local function onStart(_,bool)
     effect:FollowParent(player)
     effect:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
     scythe_cache = effect
+
+    --set initial sprite offsets
+    local sprite = scythe_cache:GetSprite()
+    local rot = 0
+    sprite.Rotation = rot + 70
+    local offset = Vector(-5,0)
+    scythe_cache.DepthOffset = 10
+    sprite.Offset = offset
 end
 
 scytheMod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, onStart)
@@ -74,21 +95,71 @@ scytheMod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, onStart)
 -- Capsules are our hitboxes.
 ---@param scythe EntityEffect
 function scytheMod:ScytheEffectUpdate(scythe)
+
     scythe_cache = scythe
     local sprite = scythe_cache:GetSprite()
     local player = scythe.Parent:ToPlayer()
     local data = scythe:GetData()
     
     --Rotate the pipe based on player direction
-    local direction = player:GetMovementDirection()
-    print(player:GetAimDirection())
-    local rot = (direction-3) * 90
+    local FireDirection = player:GetFireDirection()
+    local MovDirection = player:GetMovementDirection()
+    local rot = (FireDirection-3) * 90
     sprite.Rotation = rot + 70
-    --apply club offset
-    --sprite.Offset = clubOffset
-    --find the minimal angle distance between target rotation and sprite rotation
-    --rotate the sprite according to the player movement direction
-    
+    --set offset according to fire direction and mov direction
+    local offset = Vector(-5,0)
+    scythe.DepthOffset = 10
+    if(FireDirection  == 1 or FireDirection == 2 
+      or MovDirection == 1 or MovDirection == 2) 
+      then
+      offset = Vector(10,-10)
+      scythe.DepthOffset = -10
+    end
+        sprite.Offset = offset
+    if FireDirection == -1 then
+      --find the minimal angle distance between target rotation and sprite rotation
+    local rot = (MovDirection-3)*90
+    sprite.Rotation = rot + 70
+    -- local rawDiff = math.abs(sprite.Rotation-rot)
+    -- local modDiff = math.fmod(rawDiff, 360)
+    -- local dist = modDiff
+    -- if(modDiff > 180) then
+    --   dist = 360 - modDiff
+    -- end
+    -- local direction = 1
+    -- --get sprite direction of rotation angle
+    -- if(sprite.Rotation - rot < 0) then
+    --   direction = -1
+    -- end
+    -- if(sprite.Rotation - rot > 0) then
+    --   direction = 1
+    -- end
+    -- local rot = (MovDirection-3) * 90
+    -- sprite.Rotation = rot + 70
+    -- --apply offset based on movement direction
+    -- if(MovDirection == 1 or MovDirection == 2) then
+    --   offset = Vector(10,-10)
+    -- end
+    --     sprite.Offset = offset
+    -- --interpolate the rotation of the sprite according to the player movement direction
+    -- local diff = 10
+    -- --find the minimal angle distance between target rotation and sprite rotation
+    -- --rotate the sprite according to the player movement direction
+    -- if(direction*dist > 0) then
+    --   print("dir*dist>0")
+    --     diff = 10
+    --     dist = dist - diff
+    --     sprite.Rotation = sprite.Rotation + diff
+    --     return
+    -- end
+    -- if(direction*dist < 0) then
+    --   print("dir*dist<0")
+    --     diff = -10
+    --     dist = dist - diff
+    --     sprite.Rotation = sprite.Rotation + diff
+    --     return
+    -- end
+  end
             
     -- We are going to use this table as a way to make sure enemies are only hurt once in a swing.
     -- This line will either set the hit blacklist to itself, or create one if it doesn't exist.
