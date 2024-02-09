@@ -1,2 +1,2 @@
-# MolochModPrivate
-The private repository for Moloch Mod
+# MolochMod
+This the first version of the MolochMod
