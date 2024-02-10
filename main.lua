@@ -4,10 +4,10 @@ local sfx = SFXManager()
 
 -- Setup some constants.
 local SCYTHE_EFFECT_ID = Isaac.GetEntityVariantByName("Scythe Swing")
-local DAMAGE_MULTIPLIER = 2.5
+local DAMAGE_MULTIPLIER = 1.1
 local scytheOffset = Vector(-5,0)
 local scythe_cache = nil
-local maxAnimTimer = 0.6
+local maxAnimTimer = 0.3
 local animTimer = 0
 
 function scytheMod:SwingScythe()
