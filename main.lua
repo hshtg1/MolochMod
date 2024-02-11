@@ -10,20 +10,23 @@ local scythe_cache = nil
 local maxAnimTimer = 0.3
 local animTimer = 0
 
+--handling swinging the scythe
 function scytheMod:SwingScythe()
   animTimer = animTimer - 1/60
+  --input arrows for swinging
     if  Input.GetActionValue(ButtonAction.ACTION_SHOOTLEFT, 0) > 0.5 or
         Input.GetActionValue(ButtonAction.ACTION_SHOOTRIGHT, 0) > 0.5 or
         Input.GetActionValue(ButtonAction.ACTION_SHOOTUP, 0) > 0.5 or
         Input.GetActionValue(ButtonAction.ACTION_SHOOTDOWN, 0) > 0.5
      then
         local sprite = scythe_cache:GetSprite()
+        --add a delay between swings
         if sprite:IsPlaying("Swing") == false and animTimer <= 0 then
             sprite:Play("Swing", true)
             animTimer = maxAnimTimer
             sfx:Play(SoundEffect.SOUND_SWORD_SPIN)
         end
-        
+        --if swing is finished than remove enemy from blacklist
         if sprite:IsFinished("Swing") then
           local enemies = Isaac.GetRoomEntities()
 
@@ -72,6 +75,7 @@ function scytheMod:InitializeScythe(player)
     
 end
 
+--starting setup, spawn scythe 
 local function onStart(_,bool)
     local player = Isaac.GetPlayer()
     SetBlindfold(player,true,false)
@@ -79,20 +83,11 @@ local function onStart(_,bool)
     effect:FollowParent(player)
     effect:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
     scythe_cache = effect
-
-    --set initial sprite offsets
-    -- local sprite = scythe_cache:GetSprite()
-    -- local rot = 0
-    -- sprite.Rotation = rot+70
-    -- local offset = Vector(-5,0)
-    -- scythe_cache.DepthOffset = 10
-    -- sprite.Offset = offset
 end
 
 scytheMod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, onStart)
 
--- Now, let's handle capsules.
--- Capsules are our hitboxes.
+--handle null capsule hitboxes and weapon rotation
 ---@param scythe EntityEffect
 function scytheMod:ScytheEffectUpdate(scythe)
 
@@ -101,37 +96,32 @@ function scytheMod:ScytheEffectUpdate(scythe)
     local player = scythe.Parent:ToPlayer()
     local data = scythe:GetData()
     
-    --Rotate the pipe based on player direction
-    local FireDirection = player:GetFireDirection()
-    local MovDirection = player:GetMovementDirection()
-    local rot = (FireDirection-3) * 90
+    --Rotate the scythe based on player direction
+    local headDir = player:GetHeadDirection()
+    local rot = (headDir-3) * 90
     sprite.Rotation = rot
     --set offset according to fire direction and mov direction
-    local offset = Vector(0,5)
+    local offset = Vector(0,10)
     scythe.DepthOffset = 10
-    if(FireDirection  == 1 
-      or MovDirection == 1) 
+    if(headDir == 1) 
       then
-      offset = Vector(0,-15)
+      offset = Vector(0,-20)
       scythe.DepthOffset = -10
-    end
-    if(FireDirection  == 0 
-      or MovDirection == 0) 
+      elseif(headDir == 0) 
       then
-      offset = Vector(-10,-15)
+      offset = Vector(-15,-15)
       scythe.DepthOffset = -10
-    end
-    if(FireDirection  == 2 
-      or MovDirection == 2) 
+      elseif(headDir == 2) 
       then
-      offset = Vector(10,-15)
+      offset = Vector(15,-15)
       scythe.DepthOffset = -10
     end
         sprite.Offset = offset
-    if FireDirection == -1 then
+
+    local moveDir = player:GetMovementDirection()
+    --SUPPOSED TO BE DYNAMIC ROTATION - UNFINISHED
+    --if moveDir ~= -1 then
       --find the minimal angle distance between target rotation and sprite rotation
-    local rot = (MovDirection-3)*90
-    sprite.Rotation = rot
     -- local rawDiff = math.abs(sprite.Rotation-rot)
     -- local modDiff = math.fmod(rawDiff, 360)
     -- local dist = modDiff
@@ -171,7 +161,7 @@ function scytheMod:ScytheEffectUpdate(scythe)
     --     sprite.Rotation = sprite.Rotation + diff
     --     return
     -- end
-  end
+  --end
             
     -- We are going to use this table as a way to make sure enemies are only hurt once in a swing.
     -- This line will either set the hit blacklist to itself, or create one if it doesn't exist.
@@ -186,19 +176,25 @@ function scytheMod:ScytheEffectUpdate(scythe)
             -- Search for all enemies within the capsule.
         for _, enemy in ipairs(Isaac.FindInCapsule(capsule, EntityPartition.ENEMY)) do
             -- Make sure it can be hurt.
-            if enemy:IsVulnerableEnemy()
-            and enemy:IsActiveEnemy()
+            local isValidEnemy = enemy:IsVulnerableEnemy() and enemy:IsActiveEnemy()
+            if isValidEnemy
             and not data.HitBlacklist[GetPtrHash(enemy)] then
                 -- Now hurt it.
                 enemy:TakeDamage(player.Damage * DAMAGE_MULTIPLIER, 0, EntityRef(player), 0)
-
-                -- Add it to the blacklist, so it can't be hurt again.
-                --data.HitBlacklist[GetPtrHash(enemy)] = true
                 -- Do some fancy effects, while we're at it.
                 enemy:BloodExplode()
                 enemy:MakeBloodPoof(enemy.Position, nil, 0.5)
                 sfx:Play(SoundEffect.SOUND_DEATH_BURST_LARGE)
             end
+            end
+            --also damage grid entities
+            local room = Game():GetRoom()
+            local gridEntity = nil
+            if(scythe:CollidesWithGrid()) then
+            gridEntity = room:GetGridEntityFromPos(scythe.Position)
+            end
+            if(gridEntity ~= nil and gridEntity:GetType() == GridEntityType.GRID_POOP) then
+              gridEntity:Destroy(true)
             end
         end
     end
