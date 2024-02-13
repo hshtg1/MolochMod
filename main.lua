@@ -1,28 +1,31 @@
 MolochMod = RegisterMod("MolochMod", 1)
 local sfx = SFXManager()
-MolochMod.Lib = include("lib")
-
+local game = Game()
+MolochMod.Game = game
+MolochMod.Lib = include("lib"):Init(MolochMod)
+local lib = MolochMod.Lib
 
 -- Setup some constants.
 local SCYTHE_EFFECT_ID = Isaac.GetEntityVariantByName("Scythe Swing")
 local DAMAGE_MULTIPLIER = 1.1
 local scytheOffset = Vector(-5,0)
 local scythe_cache = nil
-local maxAnimTimer = 0.3
-local animTimer = 0
+local maxSwingTimer = 0.3
+local swingTimer = 0
+local actionQueue = {}
 
 --handling swinging the scythe
 function MolochMod:SwingScythe()
-  animTimer = animTimer - 1/60
+  swingTimer = swingTimer - 1/60
     if  Input.GetActionValue(ButtonAction.ACTION_SHOOTLEFT, 0) > 0.5 or
         Input.GetActionValue(ButtonAction.ACTION_SHOOTRIGHT, 0) > 0.5 or
         Input.GetActionValue(ButtonAction.ACTION_SHOOTUP, 0) > 0.5 or
         Input.GetActionValue(ButtonAction.ACTION_SHOOTDOWN, 0) > 0.5
      then
-        local sprite = scythe_cache:GetSprite()
-        if sprite:IsPlaying("Swing") == false and animTimer <= 0 then
+      local sprite = scythe_cache:GetSprite()
+        if sprite:IsPlaying("Swing") == false and swingTimer <= 0 then
             sprite:Play("Swing", true)
-            animTimer = maxAnimTimer
+            swingTimer = maxSwingTimer
             sfx:Play(SoundEffect.SOUND_SWORD_SPIN)
         end
         
@@ -38,8 +41,9 @@ function MolochMod:SwingScythe()
               end
             end
           end
+          
         sprite:Update()
-    end
+      end
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_RENDER, MolochMod.SwingScythe)
@@ -81,14 +85,6 @@ local function onStart(_,bool)
     effect:FollowParent(player)
     effect:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
     scythe_cache = effect
-
-    --set initial sprite offsets
-    -- local sprite = scythe_cache:GetSprite()
-    -- local rot = 0
-    -- sprite.Rotation = rot+70
-    -- local offset = Vector(-5,0)
-    -- scythe_cache.DepthOffset = 10
-    -- sprite.Offset = offset
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, onStart)
@@ -104,10 +100,11 @@ function MolochMod:ScytheEffectUpdate(scythe)
   local data = scythe:GetData()
   
   --Rotate the scythe based on player direction
-  local headDir = player:GetHeadDirection()
-  local rot = (headDir-3) * 90
-  sprite.Rotation = rot
-  --set offset according to fire direction and mov direction
+    local headDir = player:GetHeadDirection()
+    if(swingTimer < maxSwingTimer/2) then
+    local rot = (headDir-3) * 90
+    sprite.Rotation = rot
+    --set offset according to fire direction and mov direction
   local offset = Vector(0,10)
   scythe.DepthOffset = 10
   if(headDir == 1) 
@@ -125,6 +122,8 @@ function MolochMod:ScytheEffectUpdate(scythe)
   end
       sprite.Offset = offset
 
+    end
+  
   local moveDir = player:GetMovementDirection()
   --SUPPOSED TO BE DYNAMIC ROTATION - UNFINISHED
   --if moveDir ~= -1 then
@@ -189,19 +188,14 @@ function MolochMod:ScytheEffectUpdate(scythe)
               -- Now hurt it.
               enemy:TakeDamage(player.Damage * DAMAGE_MULTIPLIER, 0, EntityRef(player), 0)
               -- Do some fancy effects, while we're at it.
-              enemy:BloodExplode()
-              enemy:MakeBloodPoof(enemy.Position, nil, 0.5)
               sfx:Play(SoundEffect.SOUND_DEATH_BURST_LARGE)
           end
           end
           --also damage grid entities
-          local room = Game():GetRoom()
-          local gridEntity = nil
-          if(scythe:CollidesWithGrid()) then
-          gridEntity = room:GetGridEntityFromPos(scythe.Position)
-          end
-          if(gridEntity ~= nil and gridEntity:GetType() == GridEntityType.GRID_POOP) then
-            gridEntity:Destroy(true)
+          local room = game:GetRoom()
+          for _, gridEntity in pairs(lib.FindGridEntitiesInRadius(capsule:GetPosition(), capsule:GetF1())) do
+            local gridIndex = gridEntity:GetGridIndex()
+            room:DamageGrid(gridIndex, 100)
           end
       end
   end

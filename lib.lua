@@ -6,6 +6,11 @@ local GRID_WIDTH = 40
 -- Diagonal width of a grid square.
 local GRID_DIAGONAL = GRID_WIDTH * math.sqrt(2)
 
+function lib:Init(modRef)
+	mod = modRef
+	return lib
+end
+
 function lib.FindGridEntitiesInRadius(pos, radius)
 	local foundGrids = {}
 	
@@ -34,3 +39,19 @@ function lib.FindGridEntitiesInRadius(pos, radius)
 	
 	return foundGrids
 end
+
+function lib.Len(table)
+local lengthNum = 0
+for k, v in pairs(table) do
+lengthNum = lengthNum + 1
+end
+return lengthNum
+end
+
+function lib.PrintTable(table)
+	for k, v in pairs(table) do
+	print(table[k])
+	end
+end
+
+return lib
