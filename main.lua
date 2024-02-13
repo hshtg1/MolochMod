@@ -4,6 +4,7 @@ local game = Game()
 MolochMod.Game = game
 MolochMod.Lib = include("lib"):Init(MolochMod)
 local lib = MolochMod.Lib
+local molochType = Isaac.GetPlayerTypeByName("Moloch", false)
 
 -- Setup some constants.
 local SCYTHE_EFFECT_ID = Isaac.GetEntityVariantByName("Scythe Swing")
@@ -14,8 +15,32 @@ local maxSwingTimer = 0.3
 local swingTimer = 0
 local actionQueue = {}
 
+--null costumes
+local headbandCostume = Isaac.GetCostumeIdByPath("gfx/characters/moloch_headband.anm2") -- Exact path, with the "resources" folder as the root
+local tatooCostume = Isaac.GetCostumeIdByPath("gfx/characters/moloch_tatoo.anm2") -- Exact path, with the "resources" folder as the root
+
+--starting setup, spawn scythe 
+function MolochMod:SpawnScytheApplyCostumes(player)
+  local player = Isaac.GetPlayer()
+  if player:GetPlayerType() ~= molochType then
+    return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+end
+player:AddNullCostume(headbandCostume)
+--player:AddNullCostume(tatooCostume)
+  local effect = Isaac.Spawn(EntityType.ENTITY_EFFECT, SCYTHE_EFFECT_ID, 0, player.Position, Vector(0,0), player):ToEffect()
+  effect:FollowParent(player)
+  effect:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
+  scythe_cache = effect
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_INIT, MolochMod.SpawnScytheApplyCostumes)
+
 --handling swinging the scythe
 function MolochMod:SwingScythe()
+  local player = Isaac.GetPlayer()
+  if player:GetPlayerType() ~= molochType then
+    return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+end
   swingTimer = swingTimer - 1/60
     if  Input.GetActionValue(ButtonAction.ACTION_SHOOTLEFT, 0) > 0.5 or
         Input.GetActionValue(ButtonAction.ACTION_SHOOTRIGHT, 0) > 0.5 or
@@ -49,48 +74,6 @@ end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_RENDER, MolochMod.SwingScythe)
 
---Dont allow the player to shoot tears
-function SetBlindfold(player, enabled, modifyCostume)
-    local game = Game()
-    local character = player:GetPlayerType()
-    local challenge = Isaac.GetChallenge()
-  
-    if enabled then
-      game.Challenge = Challenge.CHALLENGE_SOLAR_SYSTEM -- This challenge has a blindfold
-      player:ChangePlayerType(character)
-      game.Challenge = challenge
-  
-      -- The costume is applied automatically
-      if not modifyCostume then
-        player:TryRemoveNullCostume(NullItemID.ID_BLINDFOLD)
-      end
-    else
-      game.Challenge = Challenge.CHALLENGE_NULL
-      player:ChangePlayerType(character)
-      game.Challenge = challenge
-  
-      if modifyCostume then
-        player:TryRemoveNullCostume(NullItemID.ID_BLINDFOLD)
-      end
-    end
-  end
-
-function MolochMod:InitializeScythe(player)
-    
-end
-
---starting setup, spawn scythe 
-local function onStart(_,bool)
-    local player = Isaac.GetPlayer()
-    SetBlindfold(player,true,false)
-    local effect = Isaac.Spawn(EntityType.ENTITY_EFFECT, SCYTHE_EFFECT_ID, 0, player.Position, Vector.Zero, player):ToEffect()
-    effect:FollowParent(player)
-    effect:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
-    scythe_cache = effect
-end
-
-MolochMod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, onStart)
-
 --handle null capsule hitboxes and weapon rotation
 ---@param scythe EntityEffect
 function MolochMod:ScytheEffectUpdate(scythe)
@@ -99,6 +82,9 @@ function MolochMod:ScytheEffectUpdate(scythe)
     local sprite = scythe_cache:GetSprite()
     local player = scythe.Parent:ToPlayer()
     local data = scythe:GetData()
+    if player:GetPlayerType() ~= molochType then
+      return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+  end
     
     --Rotate the scythe based on player direction
     local headDir = player:GetHeadDirection()
