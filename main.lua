@@ -24,7 +24,7 @@ function MolochMod:SwingScythe()
      then
         local sprite = scythe_cache:GetSprite()
         --add a delay between swings
-        if sprite:IsPlaying("Swing") == false and animTimer <= 0 then
+        if sprite:IsPlaying("Swing") == false and swingTimer <= 0 then
             sprite:Play("Swing", true)
             swingTimer = maxSwingTimer
             sfx:Play(SoundEffect.SOUND_SWORD_SPIN)
