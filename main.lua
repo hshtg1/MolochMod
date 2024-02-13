@@ -101,7 +101,6 @@ function MolochMod:ScytheEffectUpdate(scythe)
   
   --Rotate the scythe based on player direction
     local headDir = player:GetHeadDirection()
-    if(swingTimer < maxSwingTimer/2) then
     local rot = (headDir-3) * 90
     sprite.Rotation = rot
     --set offset according to fire direction and mov direction
@@ -121,8 +120,6 @@ function MolochMod:ScytheEffectUpdate(scythe)
     scythe.DepthOffset = -10
   end
       sprite.Offset = offset
-
-    end
   
   local moveDir = player:GetMovementDirection()
   --SUPPOSED TO BE DYNAMIC ROTATION - UNFINISHED
@@ -183,7 +180,9 @@ function MolochMod:ScytheEffectUpdate(scythe)
       for _, enemy in ipairs(Isaac.FindInCapsule(capsule, EntityPartition.ENEMY)) do
           -- Make sure it can be hurt.
           local isValidEnemy = enemy:IsVulnerableEnemy() and enemy:IsActiveEnemy()
-          if isValidEnemy
+          local isFireplace = (enemy:GetType() == EntityType.ENTITY_FIREPLACE)
+          local isEntityPoop = (enemy:GetType() == EntityType.ENTITY_POOP)
+          if isValidEnemy or isFireplace or isEntityPoop
           and not data.HitBlacklist[GetPtrHash(enemy)] then
               -- Now hurt it.
               enemy:TakeDamage(player.Damage * DAMAGE_MULTIPLIER, 0, EntityRef(player), 0)
