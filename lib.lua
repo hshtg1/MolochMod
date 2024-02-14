@@ -7,8 +7,12 @@ local GRID_WIDTH = 40
 local GRID_DIAGONAL = GRID_WIDTH * math.sqrt(2)
 
 function lib:Init(modRef)
-	mod = modRef
+	MolochMod = modRef
 	return lib
+end
+
+function lib.Lerp(first, second, percent)
+	return (first + (second - first)*percent)
 end
 
 function lib.FindGridEntitiesInRadius(pos, radius)
