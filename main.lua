@@ -235,13 +235,16 @@ data.HitBlacklist = data.HitBlacklist or {}
 -- Spirit Sword's anm2 has two hitboxes with the same name with a different number at the ending, so we use a for loop to avoid repeating code.
 --if swing is finished than remove enemy from blacklist
 if sprite:IsFinished("Swing") then
-  local enemies = Isaac.GetRoomEntities()
-  for _, enemy in ipairs(enemies) do
-    if enemy:IsVulnerableEnemy() and enemy:IsActiveEnemy()
+  local entities = Isaac.GetRoomEntities()
+  for _, entity in ipairs(entities) do
+    local isValidEnemy = entity:IsVulnerableEnemy() and entity:IsActiveEnemy()
+    local isFireplace = (entity:GetType() == EntityType.ENTITY_FIREPLACE)
+    local isEntityPoop = (entity:GetType() == EntityType.ENTITY_POOP)
+    if isValidEnemy or isFireplace or isEntityPoop
     then
       local data = playerData.scytheCache:GetData()
       data.HitBlacklist = data.HitBlacklist or {}
-      data.HitBlacklist[GetPtrHash(enemy)] = false
+      data.HitBlacklist[GetPtrHash(entity)] = false
     end
   end
 end
@@ -259,7 +262,12 @@ for i = 1, 2 do
         if (isValidEnemy or isFireplace or isEntityPoop)
         and not data.HitBlacklist[GetPtrHash(entity)] then
             -- Now hurt it.
-            entity:TakeDamage(player.Damage * DAMAGE_MULTIPLIER, 0, EntityRef(player), 0)
+            if(isFireplace or isEntityPoop) then
+              entity:TakeDamage((player.Damage + 10) * DAMAGE_MULTIPLIER, 0, EntityRef(player), 0)
+            else
+              entity:TakeDamage(player.Damage * DAMAGE_MULTIPLIER, 0, EntityRef(player), 0)
+            end
+            
             data.HitBlacklist[GetPtrHash(entity)] = true
             if isValidEnemy then
               -- Do some fancy effects, while we're at it.
