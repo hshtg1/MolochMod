@@ -2,11 +2,12 @@
     <player name="Moloch"
         skin="moloch_character_bald.png"
         nameimage="playername_moloch.png"
-        hp="4"
-        armor="2"
+        hp="2"
+        black="2"
         keys="1"
         portrait="playerportrait_moloch.png"
         skinColor="-1"
         canShoot = "False"
+        speedmodifier = "0.4"
     />
 </players>

@@ -1,5 +1,5 @@
 <AnimatedActor>
-	<Info CreatedBy="catinsurance" CreatedOn="2/14/2024 5:46:00 PM" Version="25" Fps="30"/>
+	<Info CreatedBy="catinsurance" CreatedOn="2/14/2024 6:38:10 PM" Version="26" Fps="30"/>
 	<Content>
 		<Spritesheets>
 			<Spritesheet Path="menu moloch.png" Id="0"/>
