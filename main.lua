@@ -50,7 +50,7 @@ end
 function MolochMod:HideScythe()
   local player = Isaac.GetPlayer()
   local playerData = player:GetData()
-  playerData.molochScythesState = 1
+  playerData.molochScythesState = 0
 end
 
 function MolochMod:ApplyScythePositioning(sprite, scythes, player)
@@ -61,7 +61,7 @@ function MolochMod:ApplyScythePositioning(sprite, scythes, player)
   --set offset according to fire direction and mov direction
   local offset = Vector(0, 0)
   local depth = 1
-  local lerpSpeed = 0.4
+  local lerpSpeed = 0.3
   local playerData = player:GetData()
   playerData.molochScythesLastCardinalDirection = Direction.DOWN
   if (headDir == 1)
@@ -126,15 +126,17 @@ function MolochMod:SwingScythe()
   if player:GetPlayerType() ~= molochType or game:IsPauseMenuOpen() then
     return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
   end
+  local playerData = player:GetData()
+  local sprite = playerData.scytheCache:GetSprite()
+  if sprite:IsPlaying("Swing") == false and swingTimer <= 0 then
+    MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
+  end
   swingTimer = swingTimer - 1 / 60
   if Input.IsActionTriggered(ButtonAction.ACTION_SHOOTLEFT, player.ControllerIndex) == true or
       Input.IsActionTriggered(ButtonAction.ACTION_SHOOTRIGHT, player.ControllerIndex) == true or
       Input.IsActionTriggered(ButtonAction.ACTION_SHOOTUP, player.ControllerIndex) == true or
       Input.IsActionTriggered(ButtonAction.ACTION_SHOOTDOWN, player.ControllerIndex) == true
   then
-    local playerData = player:GetData()
-    local sprite = playerData.scytheCache:GetSprite()
-
     --add a delay between swings
     if sprite:IsPlaying("Swing") == false and swingTimer <= 0 then
       if (player:GetHeadDirection() ~= -1) then
@@ -164,7 +166,8 @@ function MolochMod:AfterHitOnEnemy(enemy, amount, damageFlags, src, countdown)
   if isValidEnemy and damageFlags == damageFlags & DamageFlag.DAMAGE_NOKILL then
     local player = Isaac.GetPlayer()
     local knockbackDir = player.Position - enemy.Position
-    player:AddKnockback(EntityRef(player), knockbackDir:Resized(2.6), 4, false)
+    --player:AddKnockback(EntityRef(player), knockbackDir:Resized(2.6), 4, false)
+    player:AddVelocity(knockbackDir:Resized(1.5))
   end
 end
 
@@ -218,9 +221,6 @@ function MolochMod:ScytheEffectUpdate(scythe)
   local scytheCache = playerData.scytheCache
   local sprite = scytheCache:GetSprite()
   local data = scytheCache:GetData()
-  if sprite:IsPlaying("Swing") == false and swingTimer <= 0 then
-    MolochMod:ApplyScythePositioning(sprite, scytheCache, player)
-  end
   if player:GetPlayerType() ~= molochType or scytheCache.IsVisible == false then
     return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
   end
