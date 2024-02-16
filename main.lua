@@ -211,55 +211,9 @@ function MolochMod:ScytheEffectUpdate(scythe)
   if sprite:IsPlaying("Swing") == false and swingTimer <= 0 then
     MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
   end
-
   if player:GetPlayerType() ~= molochType then
     return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
   end
-
-  --SUPPOSED TO BE DYNAMIC ROTATION - UNFINISHED
-  --if moveDir ~= -1 then
-  --find the minimal angle distance between target rotation and sprite rotation
-  -- local rawDiff = math.abs(sprite.Rotation-rot)
-  -- local modDiff = math.fmod(rawDiff, 360)
-  -- local dist = modDiff
-  -- if(modDiff > 180) then
-  --   dist = 360 - modDiff
-  -- end
-  -- local direction = 1
-  -- --get sprite direction of rotation angle
-  -- if(sprite.Rotation - rot < 0) then
-  --   direction = -1
-  -- end
-  -- if(sprite.Rotation - rot > 0) then
-  --   direction = 1
-  -- end
-  -- local rot = (MovDirection-3) * 90
-  -- sprite.Rotation = rot + 70
-  -- --apply offset based on movement direction
-  -- if(MovDirection == 1 or MovDirection == 2) then
-  --   offset = Vector(10,-10)
-  -- end
-  --     sprite.Offset = offset
-  -- --interpolate the rotation of the sprite according to the player movement direction
-  -- local diff = 10
-  -- --find the minimal angle distance between target rotation and sprite rotation
-  -- --rotate the sprite according to the player movement direction
-  -- if(direction*dist > 0) then
-  --   print("dir*dist>0")
-  --     diff = 10
-  --     dist = dist - diff
-  --     sprite.Rotation = sprite.Rotation + diff
-  --     return
-  -- end
-  -- if(direction*dist < 0) then
-  --   print("dir*dist<0")
-  --     diff = -10
-  --     dist = dist - diff
-  --     sprite.Rotation = sprite.Rotation + diff
-  --     return
-  -- end
-  --end
-
   -- We are going to use this table as a way to make sure enemies are only hurt once in a swing.
   -- This line will either set the hit blacklist to itself, or create one if it doesn't exist.
   data.HitBlacklist = data.HitBlacklist or {}
