@@ -42,9 +42,15 @@ MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_INIT, MolochMod.SpawnScytheApp
 
 function MolochMod:InitializePlayerData(player, scythe)
   local playerData = player:GetData()
-  playerData.molochScythesState = 0
+  playerData.molochScythesState = 1
   playerData.molochScythesLastCardinalDirection = Direction.DOWN
   playerData.scytheCache = scythe
+end
+
+function MolochMod:HideScythe()
+  local player = Isaac.GetPlayer()
+  local playerData = player:GetData()
+  playerData.molochScythesState = 1
 end
 
 function MolochMod:ApplyScythePositioning(sprite, scythes, player)
@@ -55,7 +61,7 @@ function MolochMod:ApplyScythePositioning(sprite, scythes, player)
   --set offset according to fire direction and mov direction
   local offset = Vector(0, 0)
   local depth = 1
-  local lerpSpeed = 0.25
+  local lerpSpeed = 0.4
   local playerData = player:GetData()
   playerData.molochScythesLastCardinalDirection = Direction.DOWN
   if (headDir == 1)
@@ -77,43 +83,47 @@ function MolochMod:ApplyScythePositioning(sprite, scythes, player)
     depth = -10
     playerData.molochScythesLastCardinalDirection = Direction.RIGHT
   end
+
   --handling switching direction on attack
   local aimDir = player:GetAimDirection()
-  if (aimDir == 1)
-  then
-    rot = 180
-  elseif (aimDir == 0)
-  then
-    rot = 90
-  elseif (aimDir == 2)
-  then
-    rot = -90
+  if (aimDir:Length() ~= 0) then
+    if (aimDir == 1)
+    then
+      rot = 180
+    elseif (aimDir == 0)
+    then
+      rot = 90
+    elseif (aimDir == 2)
+    then
+      rot = -90
+    end
   end
+
   sprite.Rotation = sprite.Rotation % 360
   if math.abs((sprite.Rotation - 360) - rot) < math.abs(sprite.Rotation - rot) then
     sprite.Rotation = sprite.Rotation - 360
   elseif math.abs((sprite.Rotation + 360) - rot) < math.abs(sprite.Rotation - rot) then
     sprite.Rotation = sprite.Rotation + 360
   end
-  if (playerData.molochScythesState == 0) then
-    MolochMod:LerpDirections(sprite, scythes, rot, offset, depth, lerpSpeed)
-  elseif (playerData.molochScythesState == 1) then
+  if (playerData.molochScythesState == 1) then
+    MolochMod:QuadraticInterpDirections(sprite, scythes, rot, offset, depth, lerpSpeed)
+  elseif (playerData.molochScythesState == 2) then
     sprite.Rotation = rot
     sprite.Offset = offset
     scythes.DepthOffset = depth
   end
 end
 
-function MolochMod:LerpDirections(sprite, scythes, rot, offset, depth, lerpSpeed)
-  sprite.Rotation = lib.Lerp(sprite.Rotation, rot, lerpSpeed)
-  sprite.Offset = lib.Lerp(sprite.Offset, offset, lerpSpeed)
-  scythes.DepthOffset = lib.Lerp(scythes.DepthOffset, depth, lerpSpeed)
+function MolochMod:QuadraticInterpDirections(sprite, scythes, rot, offset, depth, lerpSpeed)
+  sprite.Rotation = lib.QuadraticInterp(sprite.Rotation, rot, lerpSpeed)
+  sprite.Offset = lib.QuadraticInterp(sprite.Offset, offset, lerpSpeed)
+  scythes.DepthOffset = lib.QuadraticInterp(scythes.DepthOffset, depth, lerpSpeed)
 end
 
 --handling swinging the scythe
 function MolochMod:SwingScythe()
   local player = Isaac.GetPlayer()
-  if player:GetPlayerType() ~= molochType then
+  if player:GetPlayerType() ~= molochType or game:IsPauseMenuOpen() then
     return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
   end
   swingTimer = swingTimer - 1 / 60
@@ -124,10 +134,11 @@ function MolochMod:SwingScythe()
   then
     local playerData = player:GetData()
     local sprite = playerData.scytheCache:GetSprite()
+
     --add a delay between swings
     if sprite:IsPlaying("Swing") == false and swingTimer <= 0 then
       if (player:GetHeadDirection() ~= -1) then
-        player:GetData().molochScythesState = 1
+        player:GetData().molochScythesState = 2
         MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
       end
       sprite.PlaybackSpeed = 1
@@ -177,7 +188,7 @@ function MolochMod:ForceScytheHeadDirection(player, inputHook, buttonAction)
 
   local currentValue = Input.GetActionValue(buttonAction, player.ControllerIndex)
   local sprite = data.scytheCache:GetSprite()
-  if sprite:IsFinished("Swing") then
+  if sprite:IsPlaying("Swing") == false then
     return
   end
   if (data.molochScythesState == 1 or data.molochScythesState == 2) and currentValue <= 0.1 then
@@ -192,7 +203,6 @@ function MolochMod:ForceScytheHeadDirection(player, inputHook, buttonAction)
     if inputHook == InputHook.IS_ACTION_PRESSED then
       return returnVal > 0
     end
-    --print(returnVal)
     return returnVal
   end
 end
@@ -209,9 +219,9 @@ function MolochMod:ScytheEffectUpdate(scythe)
   local sprite = scytheCache:GetSprite()
   local data = scytheCache:GetData()
   if sprite:IsPlaying("Swing") == false and swingTimer <= 0 then
-    MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
+    MolochMod:ApplyScythePositioning(sprite, scytheCache, player)
   end
-  if player:GetPlayerType() ~= molochType then
+  if player:GetPlayerType() ~= molochType or scytheCache.IsVisible == false then
     return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
   end
   -- We are going to use this table as a way to make sure enemies are only hurt once in a swing.
@@ -234,7 +244,7 @@ function MolochMod:ScytheEffectUpdate(scythe)
         data.HitBlacklist[GetPtrHash(entity)] = false
       end
     end
-    playerData.molochScythesState = 0
+    playerData.molochScythesState = 1
   end
 
   for i = 1, 2 do
