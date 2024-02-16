@@ -1,11 +1,11 @@
 <AnimatedActor>
-	<Info CreatedBy="robot" CreatedOn="2/13/2024 7:08:33 PM" Version="120" Fps="30"/>
+	<Info CreatedBy="robot" CreatedOn="2/16/2024 9:54:51 AM" Version="123" Fps="30"/>
 	<Content>
 		<Spritesheets>
 			<Spritesheet Path="costumes\tatoo_moloch.png" Id="0"/>
 		</Spritesheets>
 		<Layers>
-			<Layer Name="head0" Id="0" SpritesheetId="0"/>
+			<Layer Name="head2" Id="0" SpritesheetId="0"/>
 		</Layers>
 		<Nulls/>
 		<Events/>

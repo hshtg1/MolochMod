@@ -153,7 +153,7 @@ function MolochMod:AfterHitOnEnemy(enemy, amount, damageFlags, src, countdown)
   if isValidEnemy and damageFlags == damageFlags & DamageFlag.DAMAGE_NOKILL then
     local player = Isaac.GetPlayer()
     local knockbackDir = player.Position - enemy.Position
-    player:AddKnockback(EntityRef(player), knockbackDir:Resized(3), 4, false)
+    player:AddKnockback(EntityRef(player), knockbackDir:Resized(2.6), 4, false)
   end
 end
 
