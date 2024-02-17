@@ -166,12 +166,31 @@ function MolochMod:AfterHitOnEnemy(enemy, amount, damageFlags, src, countdown)
   if isValidEnemy and damageFlags == damageFlags & DamageFlag.DAMAGE_NOKILL then
     local player = Isaac.GetPlayer()
     local knockbackDir = player.Position - enemy.Position
-    --player:AddKnockback(EntityRef(player), knockbackDir:Resized(2.6), 4, false)
     player:AddVelocity(knockbackDir:Resized(1.5))
   end
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_ENTITY_TAKE_DMG, MolochMod.AfterHitOnEnemy)
+
+function MolochMod:PlayerAnimReset(ent, amount, damageFlags, src, countdown)
+  if (ent:ToPlayer() and damageFlags == damageFlags & DamageFlag.DAMAGE_NOKILL) then
+    MolochMod:ResetScythesAnimation()
+    local sprite = ent:GetSprite()
+    print(sprite:GetAnimation())
+  end
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_ENTITY_TAKE_DMG, MolochMod.PlayerAnimReset)
+
+function MolochMod:ResetScythesAnimation()
+  local player = Isaac.GetPlayer()
+  local playerData = player:GetData()
+  local scythes = playerData.scytheCache
+  local sprite = scythes:GetSprite()
+  sprite:Play("Idle", true)
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_POST_NEW_ROOM, MolochMod.ResetScythesAnimation)
 
 local InputDirections = {}
 InputDirections[ButtonAction.ACTION_SHOOTLEFT] = Direction.LEFT

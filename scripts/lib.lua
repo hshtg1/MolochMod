@@ -45,6 +45,17 @@ function lib.FindGridEntitiesInRadius(pos, radius)
 	return foundGrids
 end
 
+function lib.ShortAngleDis(from, to)
+	local maxAngle = 360
+	local disAngle = (to - from) % maxAngle
+
+	return ((2 * disAngle) % maxAngle) - disAngle
+end
+
+function lib.LerpAngle(from, to, fraction)
+	return from + lib.ShortAngleDis(from, to) * fraction
+end
+
 function lib.Len(table)
 	local lengthNum = 0
 	for k, v in pairs(table) do
