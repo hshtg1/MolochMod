@@ -45,6 +45,7 @@ function MolochMod:InitializePlayerData(player, scythe)
   playerData.molochScythesState = 1
   playerData.molochScythesLastCardinalDirection = Direction.DOWN
   playerData.scytheCache = scythe
+  playerData.knockedBack = false
 end
 
 function MolochMod:HideScythe()
@@ -174,7 +175,12 @@ function MolochMod:AfterHitOnEnemy(enemy, amount, damageFlags, src, countdown)
   local isValidEnemy = (enemy:IsVulnerableEnemy() and enemy:IsActiveEnemy()) or enemy:IsBoss()
   if isValidEnemy and damageFlags == damageFlags & DamageFlag.DAMAGE_NOKILL then
     local knockbackDir = player.Position - enemy.Position
-    player:AddVelocity(knockbackDir:Resized(1.5))
+    local playerData = player:GetData()
+    if (playerData.knockedBack == false) then
+      --print("Knockback player")
+      player:AddVelocity(knockbackDir:Resized(1.5))
+      playerData.knockedBack = true
+    end
   end
 end
 
@@ -252,6 +258,8 @@ function MolochMod:ScytheEffectUpdate(scythe)
   -- Spirit Sword's anm2 has two hitboxes with the same name with a different number at the ending, so we use a for loop to avoid repeating code.
   --if swing is finished than remove enemy from blacklist
   if sprite:IsFinished("Swing") then
+    --remove knockedBack from playerData
+    playerData.knockedBack = false
     local entities = Isaac.GetRoomEntities()
     for _, entity in ipairs(entities) do
       local isValidEnemy = entity:IsVulnerableEnemy() and entity:IsActiveEnemy()
