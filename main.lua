@@ -48,6 +48,17 @@ function MolochMod:InitializePlayerData(player, scythe)
   playerData.knockedBack = false
 end
 
+function MolochMod:UpdateCostumes(collectibleType, _, _, _, _, player)
+  local itemConfig = Isaac.GetItemConfig()
+  local itemConfigItem = itemConfig:GetCollectible(collectibleType)
+  local nullItemConfigItem = itemConfig:GetCollectible(headbandCostume)
+  if (itemConfigItem.Costume.Priority == nullItemConfigItem.Costume.Priority) then
+    player:TryRemoveNullCostume(headbandCostume)
+  end
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_POST_ADD_COLLECTIBLE, MolochMod.UpdateCostumes)
+
 function MolochMod:HideScythe()
   local player = Isaac.GetPlayer()
   local playerData = player:GetData()

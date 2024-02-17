@@ -1,6 +1,6 @@
 <costumes anm2root="gfx/characters/">
 
-    <costume anm2path="moloch_headband.anm2" type="none" priority="20" />
-    <costume anm2path="moloch_tatoo.anm2" type="none" priority="10" />
+    <costume anm2path="moloch_headband.anm2" type="none" priority="0" />
+    <costume anm2path="moloch_tatoo.anm2" type="none" priority="0" />
 
 </costumes>
