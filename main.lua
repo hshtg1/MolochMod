@@ -83,7 +83,6 @@ function MolochMod:ApplyScythePositioning(sprite, scythes, player)
     depth = -10
     playerData.molochScythesLastCardinalDirection = Direction.RIGHT
   end
-
   --handling switching direction on attack
   local aimDir = player:GetAimDirection()
   if (aimDir:Length() ~= 0) then
@@ -128,9 +127,15 @@ function MolochMod:SwingScythe()
   end
   local playerData = player:GetData()
   local sprite = playerData.scytheCache:GetSprite()
-  if sprite:IsPlaying("Swing") == false and swingTimer <= 0 then
+  if player:GetDamageCooldown() > 0 then
+    playerData.playerHurt = true
+  else
+    playerData.playerHurt = false
+  end
+  if sprite:IsPlaying("Swing") == false and swingTimer <= 0 and player:GetDamageCooldown() <= 0 and not playerData.playerHurt then
     MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
   end
+  --fix swinging when hurt
   swingTimer = swingTimer - 1 / 60
   if Input.IsActionTriggered(ButtonAction.ACTION_SHOOTLEFT, player.ControllerIndex) == true or
       Input.IsActionTriggered(ButtonAction.ACTION_SHOOTRIGHT, player.ControllerIndex) == true or
@@ -138,7 +143,7 @@ function MolochMod:SwingScythe()
       Input.IsActionTriggered(ButtonAction.ACTION_SHOOTDOWN, player.ControllerIndex) == true
   then
     --add a delay between swings
-    if sprite:IsPlaying("Swing") == false and swingTimer <= 0 then
+    if sprite:IsPlaying("Swing") == false and swingTimer <= 0 and player:HasInvincibility() == false and not playerData.playerHurt then
       if (player:GetHeadDirection() ~= -1) then
         player:GetData().molochScythesState = 2
         MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
@@ -162,9 +167,12 @@ MolochMod:AddCallback(ModCallbacks.MC_POST_PICKUP_UPDATE, MolochMod.AffectPickup
 
 --knockback after a hit on enemy that doesnt kill it
 function MolochMod:AfterHitOnEnemy(enemy, amount, damageFlags, src, countdown)
+  local player = Isaac.GetPlayer()
+  if player:GetPlayerType() ~= molochType then
+    return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+  end
   local isValidEnemy = (enemy:IsVulnerableEnemy() and enemy:IsActiveEnemy()) or enemy:IsBoss()
   if isValidEnemy and damageFlags == damageFlags & DamageFlag.DAMAGE_NOKILL then
-    local player = Isaac.GetPlayer()
     local knockbackDir = player.Position - enemy.Position
     player:AddVelocity(knockbackDir:Resized(1.5))
   end
@@ -172,18 +180,11 @@ end
 
 MolochMod:AddCallback(ModCallbacks.MC_ENTITY_TAKE_DMG, MolochMod.AfterHitOnEnemy)
 
-function MolochMod:PlayerAnimReset(ent, amount, damageFlags, src, countdown)
-  if (ent:ToPlayer() and damageFlags == damageFlags & DamageFlag.DAMAGE_NOKILL) then
-    MolochMod:ResetScythesAnimation()
-    local sprite = ent:GetSprite()
-    print(sprite:GetAnimation())
-  end
-end
-
-MolochMod:AddCallback(ModCallbacks.MC_ENTITY_TAKE_DMG, MolochMod.PlayerAnimReset)
-
 function MolochMod:ResetScythesAnimation()
   local player = Isaac.GetPlayer()
+  if player:GetPlayerType() ~= molochType then
+    return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+  end
   local playerData = player:GetData()
   local scythes = playerData.scytheCache
   local sprite = scythes:GetSprite()
