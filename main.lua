@@ -92,7 +92,11 @@ end
 MolochMod:AddCallback(ModCallbacks.MC_POST_ENTITY_KILL, MolochMod.OnPlayerDeath)
 
 function MolochMod:EvaluateHideTimers()
-  local playerData = Isaac.GetPlayer():GetData()
+  local player = Isaac.GetPlayer()
+  if player:GetPlayerType() ~= molochType then
+    return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+  end
+  local playerData = player:GetData()
   local effect = playerData.scytheCache
   if (appearTimer > 0) then appearTimer = appearTimer - 1 / 60 end
   if (appearTimer <= 0 and effect.Visible == false and keepInvisible == false) then
@@ -104,22 +108,14 @@ MolochMod:AddCallback(ModCallbacks.MC_POST_UPDATE, MolochMod.EvaluateHideTimers)
 
 --hides scythes whenever a player jumps or teleports
 function MolochMod:CheckForPlayerHidingScythes(player)
-  for _, gridEntity in pairs(lib.FindGridEntitiesInRadius(player.Position, player.Size * 2)) do
-    if (gridEntity:GetType() == GridEntityType.GRID_TRAPDOOR) then
-      MolochMod:HideScythe(false)
-      appearTimer = 0.5
-    end
-  end
   local sprite = player:GetSprite()
   if sprite:GetAnimation() == "TeleportDown" or
       sprite:GetAnimation() == "TeleportUp" or
       sprite:GetAnimation() == "TeleportLeft" or
-      sprite:GetAnimation() == "TeleportRight"
+      sprite:GetAnimation() == "TeleportRight" or
+      sprite:GetAnimation() == "Jump" or
+      sprite:GetAnimation() == "Trapdoor"
   then
-    MolochMod:HideScythe(false)
-    appearTimer = sprite:GetCurrentAnimationData():GetLength() / 60
-  end
-  if sprite:GetAnimation() == "Jump" then
     MolochMod:HideScythe(false)
     appearTimer = sprite:GetCurrentAnimationData():GetLength() / 60
   end

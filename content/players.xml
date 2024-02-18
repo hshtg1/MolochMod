@@ -1,6 +1,6 @@
 <players root="gfx/characters/costumes/" portraitroot="gfx/ui/stage/" nameimageroot="gfx/ui/boss/">
     <player name="Moloch"
-        skin="moloch_character_bald.png"
+        skin="character_moloch.png"
         nameimage="playername_moloch.png"
         hp="2"
         black="2"
