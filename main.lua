@@ -14,6 +14,8 @@ DAMAGE_MULTIPLIER = 2.5
 local scytheOffset = Vector(-5, 0)
 local maxSwingTimer = 0.4
 local swingTimer = 0
+local appearTimer = 0
+local keepInvisible = false
 local actionQueue = {}
 
 --null costumes
@@ -36,6 +38,8 @@ function MolochMod:SpawnScytheApplyCostumes(player)
   -- player:SetWeapon(scythes,1)
   -- local weapon = Isaac.GetPlayer():GetWeapon(1)
   MolochMod:InitializePlayerData(player, effect)
+  keepInvisible = false
+  --MolochMod:HideScythe(effect, false)
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_INIT, MolochMod.SpawnScytheApplyCostumes)
@@ -46,24 +50,88 @@ function MolochMod:InitializePlayerData(player, scythe)
   playerData.molochScythesLastCardinalDirection = Direction.DOWN
   playerData.scytheCache = scythe
   playerData.knockedBack = false
+  playerData.playerHurt = false
 end
 
 function MolochMod:UpdateCostumes(collectibleType, _, _, _, _, player)
   local itemConfig = Isaac.GetItemConfig()
   local itemConfigItem = itemConfig:GetCollectible(collectibleType)
   local nullItemConfigItem = itemConfig:GetCollectible(headbandCostume)
-  if (itemConfigItem.Costume.Priority == nullItemConfigItem.Costume.Priority) then
-    player:TryRemoveNullCostume(headbandCostume)
-  end
+  -- if (player:IsNullItemCostumeVisible()) then
+  --   player:TryRemoveNullCostume(headbandCostume)
+  -- end
+  -- local table = player:GetCostumeLayerMap()
+  -- lib.PrintTable(table)
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_ADD_COLLECTIBLE, MolochMod.UpdateCostumes)
 
-function MolochMod:HideScythe()
+function MolochMod:HideScythe(isVisible)
   local player = Isaac.GetPlayer()
+  if player:GetPlayerType() ~= molochType then
+    return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+  end
   local playerData = player:GetData()
-  playerData.molochScythesState = 0
+  local effect = playerData.scytheCache
+  if (isVisible) then
+    playerData.molochScythesState = 1
+  else
+    playerData.molochScythesState = 0
+  end
+
+  effect.Visible = isVisible
 end
+
+function MolochMod:ScythesAppearAfterNewLevel()
+  MolochMod:HideScythe(false)
+  appearTimer = 0.01
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_POST_NEW_LEVEL, MolochMod.ScythesAppearAfterNewLevel)
+
+function MolochMod:OnPlayerDeath(player)
+  if (player:ToPlayer()) then
+    MolochMod:HideScythe(false)
+    keepInvisible = true
+  end
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_POST_ENTITY_KILL, MolochMod.OnPlayerDeath)
+
+function MolochMod:EvaluateHideTimers()
+  local playerData = Isaac.GetPlayer():GetData()
+  local effect = playerData.scytheCache
+  if (appearTimer > 0) then appearTimer = appearTimer - 1 / 60 end
+  if (appearTimer <= 0 and effect.Visible == false and keepInvisible == false) then
+    MolochMod:HideScythe(true)
+  end
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_POST_UPDATE, MolochMod.EvaluateHideTimers)
+
+function MolochMod:CheckForPlayerHidingScythes(player)
+  for _, gridEntity in pairs(lib.FindGridEntitiesInRadius(player.Position, player.Size * 2)) do
+    if (gridEntity:GetType() == GridEntityType.GRID_TRAPDOOR) then
+      MolochMod:HideScythe(false)
+      appearTimer = 0.5
+    end
+  end
+  local sprite = player:GetSprite()
+  if sprite:GetAnimation() == "TeleportDown" or
+      sprite:GetAnimation() == "TeleportUp" or
+      sprite:GetAnimation() == "TeleportLeft" or
+      sprite:GetAnimation() == "TeleportRight"
+  then
+    MolochMod:HideScythe(false)
+    appearTimer = sprite:GetCurrentAnimationData():GetLength() / 60
+  end
+  if sprite:GetAnimation() == "Jump" then
+    MolochMod:HideScythe(false)
+    appearTimer = sprite:GetCurrentAnimationData():GetLength() / 60
+  end
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_UPDATE, MolochMod.CheckForPlayerHidingScythes)
 
 function MolochMod:ApplyScythePositioning(sprite, scythes, player)
   --Rotate the scythe based on player movement direction
@@ -139,23 +207,25 @@ function MolochMod:SwingScythe()
   end
   local playerData = player:GetData()
   local sprite = playerData.scytheCache:GetSprite()
+  swingTimer = swingTimer - 1 / 60
   if player:GetDamageCooldown() > 0 then
     playerData.playerHurt = true
   else
     playerData.playerHurt = false
   end
-  if sprite:IsPlaying("Swing") == false and swingTimer <= 0 and player:GetDamageCooldown() <= 0 and not playerData.playerHurt then
+  if sprite:IsPlaying("Swing") == false and swingTimer <= 0 and player:GetDamageCooldown() <= 0
+      and not playerData.playerHurt and playerData.scytheCache.Visible == true then
     MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
   end
   --fix swinging when hurt
-  swingTimer = swingTimer - 1 / 60
   if Input.IsActionTriggered(ButtonAction.ACTION_SHOOTLEFT, player.ControllerIndex) == true or
       Input.IsActionTriggered(ButtonAction.ACTION_SHOOTRIGHT, player.ControllerIndex) == true or
       Input.IsActionTriggered(ButtonAction.ACTION_SHOOTUP, player.ControllerIndex) == true or
       Input.IsActionTriggered(ButtonAction.ACTION_SHOOTDOWN, player.ControllerIndex) == true
   then
     --add a delay between swings
-    if sprite:IsPlaying("Swing") == false and swingTimer <= 0 and player:HasInvincibility() == false and not playerData.playerHurt then
+    if sprite:IsPlaying("Swing") == false and swingTimer <= 0 and player:HasInvincibility() == false
+        and not playerData.playerHurt and playerData.scytheCache.Visible == true then
       if (player:GetHeadDirection() ~= -1) then
         player:GetData().molochScythesState = 2
         MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
@@ -258,7 +328,7 @@ function MolochMod:ScytheEffectUpdate(scythe)
   local scytheCache = playerData.scytheCache
   local sprite = scytheCache:GetSprite()
   local data = scytheCache:GetData()
-  if player:GetPlayerType() ~= molochType or scytheCache.IsVisible == false then
+  if player:GetPlayerType() ~= molochType or scytheCache.Visible == false then
     return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
   end
   -- We are going to use this table as a way to make sure enemies are only hurt once in a swing.
