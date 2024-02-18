@@ -54,14 +54,7 @@ function MolochMod:InitializePlayerData(player, scythe)
 end
 
 function MolochMod:UpdateCostumes(collectibleType, _, _, _, _, player)
-  local itemConfig = Isaac.GetItemConfig()
-  local itemConfigItem = itemConfig:GetCollectible(collectibleType)
-  local nullItemConfigItem = itemConfig:GetCollectible(headbandCostume)
-  -- if (player:IsNullItemCostumeVisible()) then
-  --   player:TryRemoveNullCostume(headbandCostume)
-  -- end
-  -- local table = player:GetCostumeLayerMap()
-  -- lib.PrintTable(table)
+
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_ADD_COLLECTIBLE, MolochMod.UpdateCostumes)
@@ -109,6 +102,7 @@ end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_UPDATE, MolochMod.EvaluateHideTimers)
 
+--hides scythes whenever a player jumps or teleports
 function MolochMod:CheckForPlayerHidingScythes(player)
   for _, gridEntity in pairs(lib.FindGridEntitiesInRadius(player.Position, player.Size * 2)) do
     if (gridEntity:GetType() == GridEntityType.GRID_TRAPDOOR) then

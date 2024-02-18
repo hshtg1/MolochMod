@@ -1,5 +1,5 @@
 <AnimatedActor>
-	<Info CreatedBy="catinsurance" CreatedOn="10/12/2023 8:44:09 PM" Version="2" Fps="30"/>
+	<Info CreatedBy="catinsurance" CreatedOn="2/18/2024 3:12:42 PM" Version="3" Fps="30"/>
 	<Content>
 		<Spritesheets>
 			<Spritesheet Path="coop_icon.png" Id="0"/>
@@ -10,8 +10,8 @@
 		<Nulls/>
 		<Events/>
 	</Content>
-	<Animations DefaultAnimation="Gabriel">
-		<Animation Name="Gabriel" FrameNum="1" Loop="false">
+	<Animations DefaultAnimation="Moloch">
+		<Animation Name="Moloch" FrameNum="1" Loop="false">
 			<RootAnimation>
 				<Frame XPosition="0" YPosition="0" XScale="100" YScale="100" Delay="1" Visible="true" RedTint="255" GreenTint="255" BlueTint="255" AlphaTint="255" RedOffset="0" GreenOffset="0" BlueOffset="0" Rotation="0" Interpolated="false"/>
 			</RootAnimation>
