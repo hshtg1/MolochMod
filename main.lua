@@ -3,6 +3,7 @@ MolochMod = RegisterMod("MolochMod", 1)
 local game = Game()
 MolochMod.Game = game
 MolochMod.Lib = include("scripts/lib"):Init(MolochMod)
+require("scripts/dansemacabre")
 local lib = MolochMod.Lib
 
 local sfx = SFXManager()
@@ -10,6 +11,7 @@ local molochType = Isaac.GetPlayerTypeByName("Moloch", false)
 
 -- Setup some constants.
 local SCYTHE_EFFECT_ID = Isaac.GetEntityVariantByName("Scythe Swing")
+local SCYTHES_SWING = Isaac.GetSoundIdByName("Scythes Swing")
 DAMAGE_MULTIPLIER = 2.5
 local scytheOffset = Vector(-5, 0)
 local maxSwingTimer = 0.4
@@ -229,7 +231,7 @@ function MolochMod:SwingScythe()
       sprite.PlaybackSpeed = 1
       sprite:Play("Swing", true)
       swingTimer = maxSwingTimer
-      sfx:Play(SoundEffect.SOUND_SWORD_SPIN)
+      sfx:Play(SCYTHES_SWING)
     end
     sprite:Update()
   end

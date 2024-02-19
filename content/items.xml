@@ -1,0 +1,3 @@
+<items gfxroot="gfx/items/" deathanm2 = "gfx/death_items.anm2" version="1">
+    <active id="0" maxcharges="1" name="Danse Macabre" gfx="danse_macabre.png" chargetype="timed"/>
+</items>

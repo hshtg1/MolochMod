@@ -1,0 +1,8 @@
+<sounds root="sounds/">
+    <sound name="Scythes Swing">
+        <sample weight="1" path="scythes_variation1.wav"/>
+        <sample weight="1" path="scythes_variation2.wav"/>
+        <sample weight="1" path="scythes_variation3.wav"/>
+        <sample weight="1" path="scythes_variation4.wav"/>
+    </sound>
+</sounds>
