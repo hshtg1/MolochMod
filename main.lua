@@ -114,10 +114,16 @@ function MolochMod:CheckForPlayerHidingScythes(player)
       sprite:GetAnimation() == "TeleportLeft" or
       sprite:GetAnimation() == "TeleportRight" or
       sprite:GetAnimation() == "Jump" or
-      sprite:GetAnimation() == "Trapdoor"
+      sprite:GetAnimation() == "Trapdoor" or
+      sprite:GetAnimation() == "Pickup" or
+      sprite:GetAnimation() == "LiftItem" or
+      sprite:GetAnimation() == "PickupWalkDown" or
+      sprite:GetAnimation() == "PickupWalkUp" or
+      sprite:GetAnimation() == "PickupWalkLeft" or
+      sprite:GetAnimation() == "PickupWalkRight"
   then
     MolochMod:HideScythe(false)
-    appearTimer = sprite:GetCurrentAnimationData():GetLength() / 60
+    appearTimer = sprite:GetCurrentAnimationData():GetLength() / 60 - 0.2
   end
 end
 
