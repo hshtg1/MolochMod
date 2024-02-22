@@ -49,6 +49,33 @@ function lib.FindGridEntitiesInRadius(pos, radius)
 	return foundGrids
 end
 
+function lib.MakeLookupTable(tab)
+	local newTab = {}
+	for _, key in pairs(tab) do
+		newTab[key] = true
+	end
+	return newTab
+end
+
+lib.VanillaChestVariants = lib.MakeLookupTable({
+	PickupVariant.PICKUP_CHEST,
+	PickupVariant.PICKUP_BOMBCHEST,
+	PickupVariant.PICKUP_SPIKEDCHEST,
+	PickupVariant.PICKUP_MIMICCHEST,
+	PickupVariant.PICKUP_ETERNALCHEST,
+	PickupVariant.PICKUP_OLDCHEST,
+	PickupVariant.PICKUP_WOODENCHEST,
+	PickupVariant.PICKUP_MEGACHEST,
+	PickupVariant.PICKUP_HAUNTEDCHEST,
+	PickupVariant.PICKUP_LOCKEDCHEST,
+	PickupVariant.PICKUP_REDCHEST,
+	PickupVariant.PICKUP_MOMSCHEST,
+})
+
+function lib.IsVanillaChest(entity)
+	return entity.Type == EntityType.ENTITY_PICKUP and lib.VanillaChestVariants[entity.Variant] ~= nil
+end
+
 function lib.ShortAngleDis(from, to)
 	local maxAngle = 360
 	local disAngle = (to - from) % maxAngle

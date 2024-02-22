@@ -334,6 +334,47 @@ end
 MolochMod:AddCallback(ModCallbacks.MC_INPUT_ACTION, MolochMod.ForceScytheHeadDirection, InputHook.IS_ACTION_PRESSED)
 MolochMod:AddCallback(ModCallbacks.MC_INPUT_ACTION, MolochMod.ForceScytheHeadDirection, InputHook.GET_ACTION_VALUE)
 
+--make the scythes get pickups
+local ScythePickupCollisionBlacklist = {
+  [PickupVariant.PICKUP_COLLECTIBLE] = true,
+  [PickupVariant.PICKUP_SHOPITEM] = true,
+  [PickupVariant.PICKUP_TROPHY] = true,
+  [PickupVariant.PICKUP_BIGCHEST] = true,
+  [PickupVariant.PICKUP_BED] = true,
+  [PickupVariant.PICKUP_MEGACHEST] = true,
+  [PickupVariant.PICKUP_THROWABLEBOMB] = true,
+}
+local function ScythePickupPush(player, pickup)
+  if pickup:GetSprite():GetAnimation() ~= "Collect" then
+    pickup.Velocity = (pickup.Position - player.Position):Resized(5)
+  end
+end
+
+function MolochMod:ScythesPickupCollision(player, entity)
+  local pickup = entity:ToPickup()
+  if not player or player.EntityCollisionClass == EntityCollisionClass.ENTCOLL_NONE
+      or player.EntityCollisionClass == EntityCollisionClass.ENTCOLL_PLAYERONLY
+      or not pickup or ScythePickupCollisionBlacklist[pickup.Variant] or pickup.Price ~= 0
+  then
+    return
+  end
+  if lib.IsVanillaChest(pickup) and pickup.SubType == ChestSubType.CHEST_OPENED then
+    ScythePickupPush(player, pickup)
+    return
+  end
+  local isUnpickableRedHeart = not player:CanPickRedHearts() and pickup.Variant == PickupVariant.PICKUP_HEART and
+      pickup.SubType < 3
+  local isUnpickableBattery = pickup.Variant == PickupVariant.PICKUP_LIL_BATTERY and
+      not player:NeedsCharge(ActiveSlot.SLOT_PRIMARY)
+  if isUnpickableRedHeart or isUnpickableBattery then
+    ScythePickupPush(player, pickup)
+  elseif lib.IsVanillaChest(pickup) then
+    pickup:TryOpenChest(player)
+  else
+    pickup.Position = player.Position
+  end
+end
+
 --handle null capsule hitboxes and weapon rotation
 ---@param scythe EntityEffect
 function MolochMod:ScytheEffectUpdate(scythe)
@@ -345,16 +386,13 @@ function MolochMod:ScytheEffectUpdate(scythe)
   if player:GetPlayerType() ~= molochType or scytheCache.Visible == false then
     return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
   end
-  -- We are going to use this table as a way to make sure enemies are only hurt once in a swing.
-  -- This line will either set the hit blacklist to itself, or create one if it doesn't exist.
+
   data.HitBlacklist = data.HitBlacklist or {}
 
-  -- We're doing a for loop before because the effect is based off of Spirit Sword's anm2.
-  -- Spirit Sword's anm2 has two hitboxes with the same name with a different number at the ending, so we use a for loop to avoid repeating code.
-  --if swing is finished than remove enemy from blacklist
   if sprite:IsFinished("Swing") then
-    --remove knockedBack from playerData
+    --remove knockedBack and capsule from playerData
     playerData.knockedBack = false
+    playerData.capsule = nil
     sprite:Play("Idle", true)
     local entities = Isaac.GetRoomEntities()
     for _, entity in ipairs(entities) do
@@ -374,23 +412,37 @@ function MolochMod:ScytheEffectUpdate(scythe)
   for i = 1, 2 do
     -- Get the "null capsule", which is the hitbox defined by the null layer in the anm2.
     local capsule = scythe:GetNullCapsule("Hit" .. i)
+    playerData.capsule = capsule
     if (sprite:IsPlaying("Swing")) then
-      -- Search for all enemies within the capsule.
-      for _, entity in ipairs(Isaac.FindInCapsule(capsule, EntityPartition.ENEMY)) do
-        -- Make sure it can be hurt.
+      -- Search for all entities within the capsule.
+      for _, entity in ipairs(Isaac.FindInCapsule(capsule, EntityPartition.ALL)) do
+        -- Make sure its a valid entity
         local isValidEnemy = entity:IsVulnerableEnemy() and entity:IsActiveEnemy()
         local isFireplace = (entity:GetType() == EntityType.ENTITY_FIREPLACE)
         local isEntityPoop = (entity:GetType() == EntityType.ENTITY_POOP)
-        if (isValidEnemy or isFireplace or isEntityPoop)
+        local isPickup = (entity:GetType() == EntityType.ENTITY_PICKUP)
+        local isBomb = (entity:GetType() == EntityType.ENTITY_BOMB)
+        local isMovableTNT = (entity:GetType() == EntityType.ENTITY_MOVABLE_TNT)
+        if (isValidEnemy or isFireplace or isEntityPoop or isPickup or isBomb or isMovableTNT)
             and not data.HitBlacklist[GetPtrHash(entity)] then
-          -- Now hurt it.
-          if (isFireplace or isEntityPoop) then
+          if (isFireplace or isEntityPoop or isMovableTNT) then
             entity:TakeDamage((player.Damage + 10) * DAMAGE_MULTIPLIER, 0, EntityRef(player), 0)
-          else
+          elseif isPickup then
+            --affect pickups with the capsule
+            MolochMod:ScythesPickupCollision(player, entity)
+          elseif isBomb then
+            --hitting bombs with the scythes knocks them back
+            local bomb = entity:ToBomb()
+            if (bomb == nil) then return end
+            if bomb.Variant ~= BombVariant.BOMB_ROCKET and bomb.Variant ~= BombVariant.BOMB_ROCKET_GIGA
+            then
+              bomb.Velocity = bomb.Position:__sub(player.Position):Resized(10)
+              sfx:Play(SoundEffect.SOUND_SCAMPER, 0.78, 0, false, 0.8)
+            end
+          elseif isValidEnemy then
             entity:TakeDamage(player.Damage * DAMAGE_MULTIPLIER, 0, EntityRef(player), 0)
+            data.HitBlacklist[GetPtrHash(entity)] = true
           end
-
-          data.HitBlacklist[GetPtrHash(entity)] = true
           if isValidEnemy then
             -- Do some fancy effects, while we're at it.
             sfx:Play(SoundEffect.SOUND_DEATH_BURST_LARGE)

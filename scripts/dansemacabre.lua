@@ -39,15 +39,12 @@ function MolochMod:DanceEffectUpdate(dance)
     local player = dance.Parent:ToPlayer()
     --local data = dance:GetData()
 
-    -- Handle removing the pipe when the spin is done.
+    -- Handle removing the animation when the spin is done.
     if sprite:IsFinished("Dance") then
         dance:Remove()
         MolochMod:HideScythe(true)
         return
     end
-
-    -- We're doing a for loop before because the effect is based off of Spirit Sword's anm2.
-    -- Spirit Sword's anm2 has two hitboxes with the same name with a different number at the ending, so we use a for loop to avoid repeating code.
     for i = 1, 2 do
         -- Get the "null capsule", which is the hitbox defined by the null layer in the anm2.
         local capsule = dance:GetNullCapsule("Hit" .. i)
@@ -58,10 +55,20 @@ function MolochMod:DanceEffectUpdate(dance)
             local isValidEnemy = entity:IsVulnerableEnemy() and entity:IsActiveEnemy()
             local isFireplace = (entity:GetType() == EntityType.ENTITY_FIREPLACE)
             local isEntityPoop = (entity:GetType() == EntityType.ENTITY_POOP)
-            if (isValidEnemy or isFireplace or isEntityPoop) then
-                -- Now hurt it.
-                if (isFireplace or isEntityPoop) then
+            local isBomb = (entity:GetType() == EntityType.ENTITY_BOMB)
+            local isMovableTNT = (entity:GetType() == EntityType.ENTITY_MOVABLE_TNT)
+            if (isValidEnemy or isFireplace or isEntityPoop or isBomb or isMovableTNT) then
+                if (isFireplace or isEntityPoop or isMovableTNT) then
                     entity:TakeDamage((player.Damage + 10) * DAMAGE_MULTIPLIER, 0, EntityRef(player), 0)
+                elseif isBomb then
+                    --hitting bombs with the scythes knocks them back
+                    local bomb = entity:ToBomb()
+                    if (bomb == nil) then return end
+                    if bomb.Variant ~= BombVariant.BOMB_ROCKET and bomb.Variant ~= BombVariant.BOMB_ROCKET_GIGA
+                    then
+                        bomb.Velocity = bomb.Position:__sub(player.Position):Resized(10)
+                        sfx:Play(SoundEffect.SOUND_SCAMPER, 0.78, 0, false, 0.8)
+                    end
                 else
                     entity:TakeDamage(player.Damage * DANCE_DAMAGE_MULTIPLIER, 0, EntityRef(player), 0)
                 end
@@ -76,5 +83,4 @@ function MolochMod:DanceEffectUpdate(dance)
     end
 end
 
--- Connect the callback, only for our effect.
 MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, MolochMod.DanceEffectUpdate, DANCE_EFFECT_ID)
