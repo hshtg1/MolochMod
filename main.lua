@@ -73,6 +73,10 @@ function MolochMod:SetSwingTimer(newMax)
   maxSwingTimer = newMax
 end
 
+function MolochMod:SetAppearTimer(appear)
+  appearTimer = appear
+end
+
 function MolochMod:HideScythe(isVisible)
   local player = Isaac.GetPlayer()
   if player:GetPlayerType() ~= molochType then
