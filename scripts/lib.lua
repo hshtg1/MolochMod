@@ -16,6 +16,10 @@ function lib.QuadraticInterp(p1, p2, x)
 	return ((-3 / 2) * p1 + (3 / 2) * p2) * (x ^ 2) + ((-1 / 2) * p1 + (1 / 2) * p2) * x + p1
 end
 
+function lib.Lerp(first, second, percent)
+	return (first + (second - first) * percent)
+end
+
 function lib.FindGridEntitiesInRadius(pos, radius)
 	local foundGrids = {}
 

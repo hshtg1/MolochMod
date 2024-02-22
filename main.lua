@@ -3,7 +3,8 @@ MolochMod = RegisterMod("MolochMod", 1)
 local game = Game()
 MolochMod.Game = game
 MolochMod.Lib = include("scripts/lib"):Init(MolochMod)
-require("scripts/dansemacabre")
+include("scripts/dansemacabre")
+include("scripts/statsscale")
 local lib = MolochMod.Lib
 
 local sfx = SFXManager()
@@ -60,6 +61,17 @@ function MolochMod:UpdateCostumes(collectibleType, _, _, _, _, player)
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_ADD_COLLECTIBLE, MolochMod.UpdateCostumes)
+
+function MolochMod:GetScythes(player)
+  local playerData = player:GetData()
+  if playerData.scytheCache ~= nil then
+    return playerData.scytheCache
+  end
+end
+
+function MolochMod:SetSwingTimer(newMax)
+  maxSwingTimer = newMax
+end
 
 function MolochMod:HideScythe(isVisible)
   local player = Isaac.GetPlayer()
@@ -339,6 +351,7 @@ function MolochMod:ScytheEffectUpdate(scythe)
   if sprite:IsFinished("Swing") then
     --remove knockedBack from playerData
     playerData.knockedBack = false
+    sprite:Play("Idle", true)
     local entities = Isaac.GetRoomEntities()
     for _, entity in ipairs(entities) do
       local isValidEnemy = entity:IsVulnerableEnemy() and entity:IsActiveEnemy()
