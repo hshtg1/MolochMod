@@ -5,7 +5,8 @@ local lib = MolochMod.Lib
 local DANSE_MACABRE_ITEM_ID = Isaac.GetItemIdByName("Danse Macabre")
 local DANCE_EFFECT_ID = Isaac.GetEntityVariantByName("Danse Macabre")
 local molochType = Isaac.GetPlayerTypeByName("Moloch", false)
-local DANCE_DAMAGE_MULTIPLIER = 1
+local DANCE_DAMAGE_MULTIPLIER = 0.5
+local DANSE_SPIN = Isaac.GetSoundIdByName("Danse Macabre")
 
 function MolochMod:InitializeDanseMacabre(player)
     if player:GetPlayerType() ~= molochType then
@@ -17,6 +18,9 @@ end
 MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_INIT, MolochMod.InitializeDanseMacabre)
 
 function MolochMod:UseDanseMacabre(collectibleType, rng, player, useFlags, activeSlot, _)
+    if game:IsPauseMenuOpen() then
+        return
+    end
     local effect = Isaac.Spawn(EntityType.ENTITY_EFFECT, DANCE_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
         :ToEffect()
     effect:FollowParent(player)
@@ -24,7 +28,7 @@ function MolochMod:UseDanseMacabre(collectibleType, rng, player, useFlags, activ
     --hide the scythes for the duration of the spin/dance animation
     MolochMod:HideScythe(false)
     MolochMod:SetAppearTimer(sprite:GetCurrentAnimationData():GetLength() / 60)
-    sfx:Play(SoundEffect.SOUND_SWORD_SPIN)
+    sfx:Play(DANSE_SPIN)
     return {
         Discharge = true,
         Remove = false,

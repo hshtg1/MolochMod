@@ -5,4 +5,7 @@
         <sample weight="1" path="scythes_variation3.wav"/>
         <sample weight="1" path="scythes_variation4.wav"/>
     </sound>
+    <sound name="Danse Macabre">
+        <sample weight="1" path="sound_danse2.wav" />
+    </sound>
 </sounds>

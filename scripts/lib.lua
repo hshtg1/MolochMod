@@ -1,6 +1,25 @@
 local lib = {}
 local game = MolochMod.Game
 
+-- AB+ compatible color constructor
+-- Thanks, oatmealine
+function lib.NewColor(r, g, b, a, ro, go, bo)
+	if not REPENTANCE then
+		a = a or 1
+		ro = ro or 0
+		go = go or 0
+		bo = bo or 0
+
+		ro = math.floor(ro * 255)
+		go = math.floor(go * 255)
+		bo = math.floor(bo * 255)
+	end
+	return Color(r, g, b, a, ro, go, bo)
+end
+
+lib.InvisibleColor = lib.NewColor(1, 1, 1, 0)
+lib.NullColor = lib.NewColor(1, 1, 1, 1)
+
 -- Width of a grid square.
 local GRID_WIDTH = 40
 -- Diagonal width of a grid square.
@@ -59,21 +78,27 @@ end
 
 lib.VanillaChestVariants = lib.MakeLookupTable({
 	PickupVariant.PICKUP_CHEST,
-	PickupVariant.PICKUP_BOMBCHEST,
 	PickupVariant.PICKUP_SPIKEDCHEST,
 	PickupVariant.PICKUP_MIMICCHEST,
-	PickupVariant.PICKUP_ETERNALCHEST,
 	PickupVariant.PICKUP_OLDCHEST,
 	PickupVariant.PICKUP_WOODENCHEST,
-	PickupVariant.PICKUP_MEGACHEST,
 	PickupVariant.PICKUP_HAUNTEDCHEST,
-	PickupVariant.PICKUP_LOCKEDCHEST,
 	PickupVariant.PICKUP_REDCHEST,
 	PickupVariant.PICKUP_MOMSCHEST,
 })
 
+lib.UnlockableChestVariants = lib.MakeLookupTable({
+	PickupVariant.PICKUP_ETERNALCHEST,
+	PickupVariant.PICKUP_LOCKEDCHEST,
+})
+
 function lib.IsVanillaChest(entity)
 	return entity.Type == EntityType.ENTITY_PICKUP and lib.VanillaChestVariants[entity.Variant] ~= nil
+end
+
+function lib.IsUnlockableChest(entity)
+	return entity.Type == EntityType.ENTITY_PICKUP and lib.UnlockableChestVariants[entity.Variant] and
+		lib.UnlockableChestVariants[entity.Variant] ~= nil
 end
 
 function lib.ShortAngleDis(from, to)
