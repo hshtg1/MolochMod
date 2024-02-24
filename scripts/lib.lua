@@ -85,6 +85,7 @@ lib.VanillaChestVariants = lib.MakeLookupTable({
 	PickupVariant.PICKUP_HAUNTEDCHEST,
 	PickupVariant.PICKUP_REDCHEST,
 	PickupVariant.PICKUP_MOMSCHEST,
+	PickupVariant.PICKUP_MEGACHEST
 })
 
 lib.UnlockableChestVariants = lib.MakeLookupTable({
