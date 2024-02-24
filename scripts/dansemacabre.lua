@@ -4,15 +4,36 @@ MolochMod.Lib = include("scripts/lib"):Init(MolochMod)
 local lib = MolochMod.Lib
 local DANSE_MACABRE_ITEM_ID = Isaac.GetItemIdByName("Danse Macabre")
 local DANCE_EFFECT_ID = Isaac.GetEntityVariantByName("Danse Macabre")
+local GLOW_EFFECT_ID = Isaac.GetEntityVariantByName("Glow")
 local molochType = Isaac.GetPlayerTypeByName("Moloch", false)
-local DANCE_DAMAGE_MULTIPLIER = 0.5
 local DANSE_SPIN = Isaac.GetSoundIdByName("Danse Macabre")
+
+--constants
+local MIN_DANCE_DAMAGE_MULTIPLIER = 0.2
+local MAX_DANCE_DAMAGE_MULTIPLIER = 0.5
+local DANCE_DAMAGE_MULTIPLIER = 0
+local killCount = 0
+local lerpSpeed = 0.5
+local lerpR = 1
+local lerpG = 1
+local lerpB = 1
+
+local function onStart(_, continued)
+    if continued then
+        return
+    end
+    DANCE_DAMAGE_MULTIPLIER = MIN_DANCE_DAMAGE_MULTIPLIER
+end
+MolochMod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, onStart)
 
 function MolochMod:InitializeDanseMacabre(player)
     if player:GetPlayerType() ~= molochType then
         return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
     end
     player:SetPocketActiveItem(DANSE_MACABRE_ITEM_ID, ActiveSlot.SLOT_POCKET, true)
+    local glow = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
+        :ToEffect()
+    glow:FollowParent(player)
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_INIT, MolochMod.InitializeDanseMacabre)
@@ -28,7 +49,7 @@ function MolochMod:UseDanseMacabre(collectibleType, rng, player, useFlags, activ
     --hide the scythes for the duration of the spin/dance animation
     MolochMod:HideScythe(false)
     MolochMod:SetAppearTimer(sprite:GetCurrentAnimationData():GetLength() / 60)
-    sfx:Play(DANSE_SPIN)
+    sfx:Play(DANSE_SPIN, 1.3)
     return {
         Discharge = true,
         Remove = false,
@@ -42,11 +63,17 @@ function MolochMod:DanceEffectUpdate(dance)
     local sprite = dance:GetSprite()
     local player = dance.Parent:ToPlayer()
     --local data = dance:GetData()
+    print("DamageMultiplier:" .. tostring(DANCE_DAMAGE_MULTIPLIER))
 
     -- Handle removing the animation when the spin is done.
     if sprite:IsFinished("Dance") then
         dance:Remove()
         MolochMod:HideScythe(true)
+        DANCE_DAMAGE_MULTIPLIER = MIN_DANCE_DAMAGE_MULTIPLIER
+        lerpR = 1
+        lerpG = 1
+        lerpB = 1
+        killCount = 0
         return
     end
     for i = 1, 2 do
@@ -88,3 +115,45 @@ function MolochMod:DanceEffectUpdate(dance)
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, MolochMod.DanceEffectUpdate, DANCE_EFFECT_ID)
+
+function MolochMod:ChargeDanse(ent)
+    local player = Isaac.GetPlayer()
+    local playerData = player:GetData()
+    local scythes = playerData.scytheCache
+    local data = scythes:GetData()
+    if ent:IsEnemy() == false then
+        return
+    end
+    if data.HitBlacklist[GetPtrHash(ent)] then
+        if (ent:IsBoss()) then
+            killCount = killCount + 5
+        else
+            killCount = killCount + 1
+        end
+
+        print("KillCount:" .. tostring(killCount))
+        if (killCount >= 3) then
+            DANCE_DAMAGE_MULTIPLIER = lib.Lerp(DANCE_DAMAGE_MULTIPLIER, MAX_DANCE_DAMAGE_MULTIPLIER, lerpSpeed)
+            killCount = 0
+            MolochMod:ColorScythes()
+        end
+    end
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_POST_ENTITY_KILL, MolochMod.ChargeDanse)
+
+function MolochMod:ColorScythes()
+    --color the scythes redder when higher damage multiplier
+    lerpR = lib.Lerp(lerpR, 200, 0.001)
+    lerpG = lib.Lerp(lerpG, 0, 0.1)
+    lerpB = lib.Lerp(lerpG, 0, 0.1)
+end
+
+function MolochMod:UpdateColor()
+    local player = Isaac.GetPlayer()
+    local playerData = player:GetData()
+    local scythes = playerData.scytheCache
+    scythes:SetColor(lib.NewColor(lerpR, lerpG, lerpB), 15, 1, false, false)
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_POST_UPDATE, MolochMod.UpdateColor)

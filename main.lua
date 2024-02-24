@@ -228,7 +228,7 @@ function MolochMod:SwingScythe()
   local playerData = player:GetData()
   local sprite = playerData.scytheCache:GetSprite()
   swingTimer = swingTimer - 1 / 60
-  if player:GetDamageCooldown() > 100 then
+  if player:GetDamageCooldown() > 85 then
     playerData.playerHurt = true
     return
   else
@@ -254,7 +254,7 @@ function MolochMod:SwingScythe()
       sprite.PlaybackSpeed = 1
       sprite:Play("Swing", true)
       swingTimer = maxSwingTimer
-      sfx:Play(SCYTHES_SWING, 0.7)
+      sfx:Play(SCYTHES_SWING, 1.3)
     end
     sprite:Update()
   end
