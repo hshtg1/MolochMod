@@ -177,6 +177,12 @@ function MolochMod:ApplyScythePositioning(sprite, scythes, player)
     depth = -10
     playerData.molochScythesLastCardinalDirection = Direction.RIGHT
   end
+  if playerData.playerHurt then
+    sprite.Rotation = rot
+    sprite.Offset = offset
+    scythes.DepthOffset = depth
+    return
+  end
   --handling switching direction on attack
   local aimDir = player:GetAimDirection()
   if (aimDir:Length() ~= 0) then
@@ -222,13 +228,14 @@ function MolochMod:SwingScythe()
   local playerData = player:GetData()
   local sprite = playerData.scytheCache:GetSprite()
   swingTimer = swingTimer - 1 / 60
-  if player:GetDamageCooldown() > 0 then
+  if player:GetDamageCooldown() > 100 then
     playerData.playerHurt = true
+    return
   else
     playerData.playerHurt = false
   end
-  if sprite:IsPlaying("Swing") == false and swingTimer <= 0 and player:GetDamageCooldown() <= 0
-      and not playerData.playerHurt and playerData.scytheCache.Visible == true then
+  if sprite:IsPlaying("Swing") == false and swingTimer <= 0
+      and playerData.scytheCache.Visible == true then
     MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
   end
   --fix swinging when hurt
@@ -239,7 +246,7 @@ function MolochMod:SwingScythe()
   then
     --add a delay between swings
     if sprite:IsPlaying("Swing") == false and swingTimer <= 0 and player:HasInvincibility() == false
-        and not playerData.playerHurt and playerData.scytheCache.Visible == true then
+        and playerData.scytheCache.Visible == true then
       if (player:GetHeadDirection() ~= -1) then
         player:GetData().molochScythesState = 2
         MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
@@ -289,7 +296,7 @@ function MolochMod:ResetScythesAnimation()
   local playerData = player:GetData()
   local scythes = playerData.scytheCache
   local sprite = scythes:GetSprite()
-  sprite:Play("Idle", true)
+  sprite:Stop()
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_NEW_ROOM, MolochMod.ResetScythesAnimation)
@@ -303,11 +310,11 @@ InputDirections[ButtonAction.ACTION_SHOOTDOWN] = Direction.DOWN
 --force the player to look in the direction of swing
 function MolochMod:ForceScytheHeadDirection(player, inputHook, buttonAction)
   local player = Isaac.GetPlayer()
-  if player:GetPlayerType() ~= molochType then
+  if player:GetPlayerType() ~= molochType or player == nil then
     return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
   end
   if not InputDirections[buttonAction] or not player or not player:ToPlayer() then return end
-  player = player:ToPlayer()
+  local player = player:ToPlayer()
   local data = player:GetData()
 
   local currentValue = Input.GetActionValue(buttonAction, player.ControllerIndex)
