@@ -340,6 +340,7 @@ local ScythePickupCollisionBlacklist = {
   [PickupVariant.PICKUP_SHOPITEM] = true,
   [PickupVariant.PICKUP_TROPHY] = true,
   [PickupVariant.PICKUP_BIGCHEST] = true,
+  [PickupVariant.PICKUP_MEGACHEST] = true,
   [PickupVariant.PICKUP_BED] = true,
   [PickupVariant.PICKUP_THROWABLEBOMB] = true,
 }
@@ -378,7 +379,6 @@ function MolochMod:ScythesPickupCollision(player, entity)
   elseif lib.IsUnlockableChest(pickup) and player:GetNumKeys() > 0 and pickup.SubType ~= ChestSubType.CHEST_OPENED then
     player:AddKeys(-1)
     pickup:TryOpenChest(player)
-  elseif entity.Type == EntityType.ENTITY_PICKUP and entity.Variant == PickupVariant.PICKUP_MEGACHEST and player:GetNumKeys() > 0 then
   elseif lib.IsUnlockableChest(pickup) and player:GetNumKeys() == 0 then
     ScythePickupPush(player, pickup)
   elseif lib.IsVanillaChest(pickup) then
