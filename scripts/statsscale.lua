@@ -71,7 +71,6 @@ function MolochMod:EvaluateCache(player, cacheFlags)
             end
         end
         if (playerData.scythesDelay ~= nil) then
-            print(playerData.scythesDelay)
             MolochMod:SetSwingTimer(playerData.scythesDelay)
         end
     end
