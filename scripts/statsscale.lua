@@ -78,3 +78,11 @@ function MolochMod:EvaluateCache(player, cacheFlags)
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_EVALUATE_CACHE, MolochMod.EvaluateCache)
+
+function MolochMod:UsePillEvaluate(pillEffectID, player, useFlags)
+    player:AddCacheFlags(CacheFlag.CACHE_SIZE)
+    player:AddCacheFlags(CacheFlag.CACHE_RANGE)
+    player:EvaluateItems()
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_USE_PILL, MolochMod.UsePillEvaluate)
