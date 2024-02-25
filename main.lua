@@ -370,6 +370,7 @@ function MolochMod:ScythesPickupCollision(player, entity)
   if not player or player.EntityCollisionClass == EntityCollisionClass.ENTCOLL_NONE
       or player.EntityCollisionClass == EntityCollisionClass.ENTCOLL_PLAYERONLY
       or not pickup or ScythePickupCollisionBlacklist[pickup.Variant] or pickup.Price ~= 0
+      or (pickup:GetData().pickupCooldown or 0) < 0
   then
     return
   end
@@ -393,110 +394,35 @@ function MolochMod:ScythesPickupCollision(player, entity)
   elseif entity.Type == EntityType.ENTITY_PICKUP and entity.Variant == PickupVariant.PICKUP_BOMBCHEST then
     ScythePickupPush(player, pickup)
   else
-    pickup:GetData().pickupActualPos = pickup.Position
-    pickup:GetData().pickupCountDown = 2
-    pickup:GetData().pickupPlayer = player
-    pickup.Position = player.Position
-    ScythesPickupSetHidden(pickup, true)
+    local data = pickup:GetData()
+    data.pickupCountdown = 2
+    local sprite = pickup:GetSprite()
+    sprite:Play("Collect")
+    pickup.Touched = true
   end
 end
 
-function MolochMod:ScythePickup(pickup)
+function MolochMod:ScythesPickup(pickup)
+  local player = Isaac.GetPlayer()
   local data = pickup:GetData()
-
   if (data.pickupCooldown or 0) > 0 then
     data.pickupCooldown = data.pickupCooldown - 1
   end
-
-  if data.pickupActualPos and (data.pickupCountDown or 0) > 0 then
-    data.pickupCountDown = data.pickupCountDown - 1
-    if data.pickupFixedPos then
-      data.pickupFixedPos = data.pickupActualPos
-    end
-    if data.pickupCountDown <= 0 then
-      local pos = data.pickupActualPos
-      pickup.Position = pos
-      pickup.TargetPosition = pos
-      pickup:GetData().Position = pos
-
-      ScythesPickupSetHidden(pickup, false)
-
-      ScythePickupPush(data.pickupPlayer or Isaac.GetPlayer(0), pickup)
-
-      data.pickupActualPos = nil
-      data.pickupCountDown = nil
-    else
-      ScythesPickupSetHidden(pickup, true)
+  if (data.pickupCountdown or 0) > 0 then
+    data.pickupCountdown = data.pickupCountdown - 1
+    if not (lib.IsVanillaChest(pickup) or lib.IsUnlockableChest(pickup)) then
+      if data.pickupCountdown <= 0 then
+        pickup.Position = player.Position
+        ScythesPickupSetHidden(pickup, false)
+        data.pickupCooldown = 10
+      else
+        ScythesPickupSetHidden(pickup, true)
+      end
     end
   end
 end
 
-MolochMod:AddCallback(ModCallbacks.MC_POST_PICKUP_UPDATE, MolochMod.ScythePickup)
-
-function MolochMod:ScythePickupRender(pickup)
-  local data = pickup:GetData()
-
-  if data.samaelPickupActualPos and (data.samaelPickupCountDown or 0) > 0 then
-    ScythesPickupSetHidden(pickup, false)
-    pickup:GetSprite():Render(Isaac.WorldToScreen(data.samaelPickupActualPos), lib.ZeroVector, lib.ZeroVector)
-    ScythesPickupSetHidden(pickup, true)
-  end
-end
-
-MolochMod:AddCallback(ModCallbacks.MC_POST_PICKUP_RENDER, MolochMod.ScythePickupRender)
-
-ScythePickups = {}
-
-MolochMod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
-  local toRemove = {}
-  for hash, tab in pairs(ScythePickups) do
-    tab.Countdown = tab.Countdown - 1
-    if tab.Countdown <= 0 then
-      table.insert(toRemove, hash)
-    end
-  end
-  for _, hash in pairs(toRemove) do
-    ScythePickups[hash] = nil
-  end
-end)
-
-function MolochMod:ScythePickupInit(pickup)
-  if pickup.Type == EntityType.ENTITY_EFFECT and pickup.Variant == 1748 then return end
-
-  if ScythePickups[GetPtrHash(pickup)] then
-    -- Likely morphed pickup.
-    local pos = ScythePickups[GetPtrHash(pickup)].PickupPos
-    pickup.Position = pos
-    pickup.TargetPosition = pos
-    lib.ScheduleForUpdate(function()
-      pickup.Position = pos
-      pickup.TargetPosition = pos
-    end)
-    return
-  end
-
-  if pickup.SpawnerType == EntityType.ENTITY_PICKUP and pickup.SpawnerEntity and pickup.SpawnerEntity:GetData().samaelPickupActualPos then
-    pickup.Position = pickup.SpawnerEntity:GetData().samaelPickupActualPos
-    return
-  end
-
-  local foundPickupPos
-  local foundPickupDist
-
-  for _, tab in pairs(ScythePickups) do
-    local dist = pickup.Position:Distance(tab.PlayerPos)
-    if (not foundPickupDist or dist < foundPickupDist) and dist <= 5 then
-      foundPickupPos = tab.PickupPos
-      foundPickupDist = dist
-    end
-  end
-
-  if foundPickupPos then
-    pickup.Position = foundPickupPos
-  end
-end
-
-MolochMod:AddCallback(ModCallbacks.MC_POST_PICKUP_INIT, MolochMod.ScythePickupInit)
+MolochMod:AddCallback(ModCallbacks.MC_POST_PICKUP_UPDATE, MolochMod.ScythesPickup)
 
 --handle null capsule hitboxes and weapon rotation
 ---@param scythe EntityEffect
@@ -551,7 +477,7 @@ function MolochMod:ScytheEffectUpdate(scythe)
           if (isFireplace or isEntityPoop or isMovableTNT) then
             entity:TakeDamage((player.Damage + 10) * DAMAGE_MULTIPLIER, 0, EntityRef(player), 0)
           elseif isPickup then
-            --affect pickups with the capsule
+            --affect pickups within the capsule
             MolochMod:ScythesPickupCollision(player, entity)
           elseif isBomb then
             --hitting bombs with the scythes knocks them back
