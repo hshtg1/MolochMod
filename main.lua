@@ -5,6 +5,7 @@ MolochMod.Game = game
 MolochMod.Lib = include("scripts/lib"):Init(MolochMod)
 include("scripts/dansemacabre")
 include("scripts/statsscale")
+require("scripts/chargeatk")
 local lib = MolochMod.Lib
 
 local sfx = SFXManager()
@@ -238,7 +239,11 @@ function MolochMod:SwingScythe()
       and playerData.scytheCache.Visible == true then
     MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
   end
-  --fix swinging when hurt
+  if Input.GetActionValue(ButtonAction.ACTION_ITEM, player.ControllerIndex) > 0 then
+    if (sprite:IsPlaying("Charging") == false) then
+      MolochMod:PlayChargeAnim()
+    end
+  end
   if Input.IsActionTriggered(ButtonAction.ACTION_SHOOTLEFT, player.ControllerIndex) == true or
       Input.IsActionTriggered(ButtonAction.ACTION_SHOOTRIGHT, player.ControllerIndex) == true or
       Input.IsActionTriggered(ButtonAction.ACTION_SHOOTUP, player.ControllerIndex) == true or
@@ -262,11 +267,12 @@ end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_RENDER, MolochMod.SwingScythe)
 
-function MolochMod:AffectPickups(pickup)
-  --print(pickup)
+function MolochMod:PlayChargeAnim()
+  local player = Isaac.GetPlayer()
+  local scythe = MolochMod:GetScythes(player)
+  local sprite = scythe:GetSprite()
+  sprite:Play("Charging", true)
 end
-
-MolochMod:AddCallback(ModCallbacks.MC_POST_PICKUP_UPDATE, MolochMod.AffectPickups)
 
 --knockback after a hit on enemy that doesnt kill it
 function MolochMod:AfterHitOnEnemy(enemy, amount, damageFlags, src, countdown)
@@ -434,6 +440,10 @@ function MolochMod:ScytheEffectUpdate(scythe)
   end
 
   data.HitBlacklist = data.HitBlacklist or {}
+
+  if sprite:IsFinished("Charging") then
+    sprite:Play("Idle", true)
+  end
 
   if sprite:IsFinished("Swing") then
     --remove knockedBack and capsule from playerData
