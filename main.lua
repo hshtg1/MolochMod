@@ -395,10 +395,9 @@ function MolochMod:ScythesPickupCollision(player, entity)
     ScythePickupPush(player, pickup)
   else
     local data = pickup:GetData()
-    data.pickupCountdown = 2
     local sprite = pickup:GetSprite()
     sprite:Play("Collect")
-    pickup.Touched = true
+    data.pickupCountdown = 2
   end
 end
 
@@ -413,10 +412,8 @@ function MolochMod:ScythesPickup(pickup)
     if not (lib.IsVanillaChest(pickup) or lib.IsUnlockableChest(pickup)) then
       if data.pickupCountdown <= 0 then
         pickup.Position = player.Position
-        ScythesPickupSetHidden(pickup, false)
-        data.pickupCooldown = 10
-      else
         ScythesPickupSetHidden(pickup, true)
+        data.pickupCooldown = 10
       end
     end
   end
