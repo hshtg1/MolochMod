@@ -21,8 +21,8 @@ local swingTimer = 0
 local appearTimer = 0
 local keepInvisible = false
 local holdTimer = 0
-local CHARGE_METER_RENDER_OFFSET = Vector(40, -40)
-local maxCharge = 130
+local CHARGE_METER_RENDER_OFFSET = Vector(40, -50)
+local maxCharge = 250
 
 --null costumes
 local headbandCostume = Isaac.GetCostumeIdByPath("gfx/characters/moloch_headband.anm2") -- Exact path, with the "resources" folder as the root
@@ -261,7 +261,7 @@ function MolochMod:SwingScythe()
       Input.IsActionPressed(ButtonAction.ACTION_SHOOTDOWN, player.ControllerIndex)
   if pressedThisFrame
   then
-    if (holdTimer <= 201) then
+    if (holdTimer <= maxCharge) then
       holdTimer = holdTimer + 1
     end
     if holdTimer > 10 and player:HasInvincibility() == false
@@ -269,9 +269,10 @@ function MolochMod:SwingScythe()
       if (sprite:IsPlaying("Charging") == false) then
         sprite:Play("Charging", true)
       end
+      chargeWheel.PlaybackSpeed = 0.5
       if (holdTimer >= maxCharge) then
         chargeWheel:Play(CHARGE_METER_ANIMATIONS.CHARGED)
-      elseif (holdTimer <= maxCharge) and (holdTimer > 110) then
+      elseif (holdTimer < maxCharge) and (holdTimer > 220) then
         chargeWheel:Play(CHARGE_METER_ANIMATIONS.START_CHARGED)
       else
         chargeWheel:Play(CHARGE_METER_ANIMATIONS.CHARGING)
