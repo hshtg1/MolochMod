@@ -20,7 +20,7 @@ local maxSwingTimer = 0.4
 local swingTimer = 0
 local appearTimer = 0
 local keepInvisible = false
-local actionQueue = {}
+local holdTimer = 0
 
 --null costumes
 local headbandCostume = Isaac.GetCostumeIdByPath("gfx/characters/moloch_headband.anm2") -- Exact path, with the "resources" folder as the root
@@ -56,12 +56,6 @@ function MolochMod:InitializePlayerData(player, scythe)
   playerData.knockedBack = false
   playerData.playerHurt = false
 end
-
-function MolochMod:UpdateCostumes(collectibleType, _, _, _, _, player)
-
-end
-
-MolochMod:AddCallback(ModCallbacks.MC_POST_ADD_COLLECTIBLE, MolochMod.UpdateCostumes)
 
 function MolochMod:GetScythes(player)
   local playerData = player:GetData()
@@ -220,6 +214,24 @@ function MolochMod:QuadraticInterpDirections(sprite, scythes, rot, offset, depth
   scythes.DepthOffset = lib.QuadraticInterp(scythes.DepthOffset, depth, lerpSpeed)
 end
 
+local CHARGE_WHEEL_GFX = "gfx/ui/meleeLib_chargewheel.anm2"
+local CHARGE_METER_ANIMATIONS = {
+  NONE = "",
+  CHARGING = "Charging",
+  START_CHARGED = "StartCharged",
+  CHARGED = "Charged",
+  DISAPPEAR = "Disappear"
+}
+
+function MolochMod:NewChargeBarSprite()
+  local mySprite = Sprite()
+  mySprite:Load(CHARGE_WHEEL_GFX, true)
+  return mySprite
+end
+
+local pressedLastFrame
+local chargeWheel = MolochMod:NewChargeBarSprite()
+
 --handling swinging the scythe
 function MolochMod:SwingScythe()
   local player = Isaac.GetPlayer()
@@ -239,40 +251,51 @@ function MolochMod:SwingScythe()
       and playerData.scytheCache.Visible == true then
     MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
   end
-  if Input.GetActionValue(ButtonAction.ACTION_ITEM, player.ControllerIndex) > 0 then
-    if (sprite:IsPlaying("Charging") == false) then
-      MolochMod:PlayChargeAnim()
-    end
-  end
-  if Input.IsActionTriggered(ButtonAction.ACTION_SHOOTLEFT, player.ControllerIndex) == true or
-      Input.IsActionTriggered(ButtonAction.ACTION_SHOOTRIGHT, player.ControllerIndex) == true or
-      Input.IsActionTriggered(ButtonAction.ACTION_SHOOTUP, player.ControllerIndex) == true or
-      Input.IsActionTriggered(ButtonAction.ACTION_SHOOTDOWN, player.ControllerIndex) == true
+  --make sure the charging animation doesnt play over and over
+
+  local pressedThisFrame = Input.IsActionPressed(ButtonAction.ACTION_SHOOTLEFT, player.ControllerIndex) or
+      Input.IsActionPressed(ButtonAction.ACTION_SHOOTRIGHT, player.ControllerIndex) or
+      Input.IsActionPressed(ButtonAction.ACTION_SHOOTUP, player.ControllerIndex) or
+      Input.IsActionPressed(ButtonAction.ACTION_SHOOTDOWN, player.ControllerIndex)
+  if pressedThisFrame
   then
-    --add a delay between swings
-    if sprite:IsPlaying("Swing") == false and swingTimer <= 0 and player:HasInvincibility() == false
+    if (holdTimer < 100) then
+      holdTimer = holdTimer + 1
+    end
+    if holdTimer > 20 and player:HasInvincibility() == false
         and playerData.scytheCache.Visible == true then
-      if (player:GetHeadDirection() ~= -1) then
-        player:GetData().molochScythesState = 2
-        MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
+      if (sprite:IsPlaying("Charging") == false) then
+        sprite:Play("Charging", true)
       end
-      sprite.PlaybackSpeed = 1
-      sprite:Play("Swing", true)
-      swingTimer = maxSwingTimer
-      sfx:Play(SCYTHES_SWING, 1.3)
+      chargeWheel:Render(player.Position + Vector(75, 75))
+      chargeWheel:Play(CHARGE_METER_ANIMATIONS.CHARGING)
+    elseif holdTimer <= 20 then
+      --add a delay between swings
+      if sprite:IsPlaying("Swing") == false and swingTimer <= 0 and player:HasInvincibility() == false
+          and playerData.scytheCache.Visible == true then
+        if (player:GetHeadDirection() ~= -1) then
+          player:GetData().molochScythesState = 2
+          MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
+        end
+        sprite.PlaybackSpeed = 1
+        sprite:Play("Swing", true)
+        swingTimer = maxSwingTimer
+        sfx:Play(SCYTHES_SWING, 1.3)
+      end
     end
     sprite:Update()
+    chargeWheel:Update()
   end
+  if pressedLastFrame and not pressedThisFrame then
+    holdTimer = 0
+    if (sprite:IsPlaying("Charging") == true) then
+      sprite:SetLastFrame()
+    end
+  end
+  pressedLastFrame = pressedThisFrame
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_RENDER, MolochMod.SwingScythe)
-
-function MolochMod:PlayChargeAnim()
-  local player = Isaac.GetPlayer()
-  local scythe = MolochMod:GetScythes(player)
-  local sprite = scythe:GetSprite()
-  sprite:Play("Charging", true)
-end
 
 --knockback after a hit on enemy that doesnt kill it
 function MolochMod:AfterHitOnEnemy(enemy, amount, damageFlags, src, countdown)
