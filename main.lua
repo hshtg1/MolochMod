@@ -21,6 +21,7 @@ local swingTimer = 0
 local appearTimer = 0
 local keepInvisible = false
 local holdTimer = 0
+local CHARGE_METER_RENDER_OFFSET = Vector(40, -40)
 
 --null costumes
 local headbandCostume = Isaac.GetCostumeIdByPath("gfx/characters/moloch_headband.anm2") -- Exact path, with the "resources" folder as the root
@@ -267,7 +268,8 @@ function MolochMod:SwingScythe()
       if (sprite:IsPlaying("Charging") == false) then
         sprite:Play("Charging", true)
       end
-      chargeWheel:Render(player.Position + Vector(75, 75))
+      chargeWheel:Render(Isaac.WorldToRenderPosition(player.Position + CHARGE_METER_RENDER_OFFSET), Vector(0, 0),
+        Vector(0, 0))
       chargeWheel:Play(CHARGE_METER_ANIMATIONS.CHARGING)
     elseif holdTimer <= 20 then
       --add a delay between swings
@@ -283,8 +285,6 @@ function MolochMod:SwingScythe()
         sfx:Play(SCYTHES_SWING, 1.3)
       end
     end
-    sprite:Update()
-    chargeWheel:Update()
   end
   if pressedLastFrame and not pressedThisFrame then
     holdTimer = 0
@@ -292,6 +292,8 @@ function MolochMod:SwingScythe()
       sprite:SetLastFrame()
     end
   end
+  sprite:Update()
+  chargeWheel:Update()
   pressedLastFrame = pressedThisFrame
 end
 
