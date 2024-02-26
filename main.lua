@@ -22,6 +22,7 @@ local appearTimer = 0
 local keepInvisible = false
 local holdTimer = 0
 local CHARGE_METER_RENDER_OFFSET = Vector(40, -40)
+local maxCharge = 130
 
 --null costumes
 local headbandCostume = Isaac.GetCostumeIdByPath("gfx/characters/moloch_headband.anm2") -- Exact path, with the "resources" folder as the root
@@ -260,17 +261,21 @@ function MolochMod:SwingScythe()
       Input.IsActionPressed(ButtonAction.ACTION_SHOOTDOWN, player.ControllerIndex)
   if pressedThisFrame
   then
-    if (holdTimer < 100) then
+    if (holdTimer <= 201) then
       holdTimer = holdTimer + 1
     end
-    if holdTimer > 20 and player:HasInvincibility() == false
+    if holdTimer > 10 and player:HasInvincibility() == false
         and playerData.scytheCache.Visible == true then
       if (sprite:IsPlaying("Charging") == false) then
         sprite:Play("Charging", true)
       end
-      chargeWheel:Render(Isaac.WorldToRenderPosition(player.Position + CHARGE_METER_RENDER_OFFSET), Vector(0, 0),
-        Vector(0, 0))
-      chargeWheel:Play(CHARGE_METER_ANIMATIONS.CHARGING)
+      if (holdTimer >= maxCharge) then
+        chargeWheel:Play(CHARGE_METER_ANIMATIONS.CHARGED)
+      elseif (holdTimer <= maxCharge) and (holdTimer > 110) then
+        chargeWheel:Play(CHARGE_METER_ANIMATIONS.START_CHARGED)
+      else
+        chargeWheel:Play(CHARGE_METER_ANIMATIONS.CHARGING)
+      end
     elseif holdTimer <= 20 then
       --add a delay between swings
       if sprite:IsPlaying("Swing") == false and swingTimer <= 0 and player:HasInvincibility() == false
@@ -288,10 +293,14 @@ function MolochMod:SwingScythe()
   end
   if pressedLastFrame and not pressedThisFrame then
     holdTimer = 0
+    chargeWheel:Play(CHARGE_METER_ANIMATIONS.DISAPPEAR)
     if (sprite:IsPlaying("Charging") == true) then
       sprite:SetLastFrame()
     end
+    --shoot out a beam (rope)
   end
+  chargeWheel:Render(Isaac.WorldToRenderPosition(player.Position + CHARGE_METER_RENDER_OFFSET), Vector(0, 0),
+    Vector(0, 0))
   sprite:Update()
   chargeWheel:Update()
   pressedLastFrame = pressedThisFrame

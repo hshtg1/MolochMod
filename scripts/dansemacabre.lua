@@ -151,6 +151,7 @@ end
 
 function MolochMod:UpdateColor()
     local player = Isaac.GetPlayer()
+    if (player:GetPlayerType() ~= molochType) then return end
     local playerData = player:GetData()
     local scythes = playerData.scytheCache
     scythes:SetColor(lib.NewColor(lerpR, lerpG, lerpB), 15, 1, false, false)
