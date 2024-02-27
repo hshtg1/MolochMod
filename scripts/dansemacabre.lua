@@ -62,6 +62,9 @@ MolochMod:AddCallback(ModCallbacks.MC_USE_ITEM, MolochMod.UseDanseMacabre, DANSE
 function MolochMod:DanceEffectUpdate(dance)
     local sprite = dance:GetSprite()
     local player = dance.Parent:ToPlayer()
+    if player:GetPlayerType() ~= molochType then
+        return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+    end
     --local data = dance:GetData()
     print("DamageMultiplier:" .. tostring(DANCE_DAMAGE_MULTIPLIER))
 
@@ -119,8 +122,12 @@ MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, MolochMod.DanceEffectU
 function MolochMod:ChargeDanse(ent)
     local player = Isaac.GetPlayer()
     local playerData = player:GetData()
+    if player:GetPlayerType() ~= molochType then
+        return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+    end
     local scythes = playerData.scytheCache
     local data = scythes:GetData()
+
     if ent:IsEnemy() == false then
         return
     end
