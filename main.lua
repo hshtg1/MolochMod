@@ -1,5 +1,5 @@
 --register mod and includes of lib and scripts
-MolochMod = RegisterMod("MolochMod", 1)
+MolochMod = RegisterMod("Moloch Mod", 1)
 local game = Game()
 MolochMod.Game = game
 MolochMod.Lib = include("scripts/lib"):Init(MolochMod)
@@ -20,9 +20,6 @@ local maxSwingTimer = 0.4
 local swingTimer = 0
 local appearTimer = 0
 local keepInvisible = false
-local holdTimer = 0
-local CHARGE_METER_RENDER_OFFSET = Vector(40, -50)
-local maxCharge = 250
 
 --null costumes
 local headbandCostume = Isaac.GetCostumeIdByPath("gfx/characters/moloch_headband.anm2") -- Exact path, with the "resources" folder as the root
@@ -92,7 +89,7 @@ end
 
 function MolochMod:ScythesAppearAfterNewLevel()
   MolochMod:HideScythe(false)
-  appearTimer = 0.01
+  appearTimer = 1
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_NEW_LEVEL, MolochMod.ScythesAppearAfterNewLevel)
@@ -113,7 +110,7 @@ function MolochMod:EvaluateHideTimers()
   end
   local playerData = player:GetData()
   local effect = playerData.scytheCache
-  if (appearTimer > 0) then appearTimer = appearTimer - 1 / 60 end
+  if (appearTimer > 0) then appearTimer = appearTimer - 1 end
   if (appearTimer <= 0 and effect.Visible == false and keepInvisible == false) then
     MolochMod:HideScythe(true)
   end
@@ -124,21 +121,25 @@ MolochMod:AddCallback(ModCallbacks.MC_POST_UPDATE, MolochMod.EvaluateHideTimers)
 --hides scythes whenever a player jumps or teleports
 function MolochMod:CheckForPlayerHidingScythes(player)
   local sprite = player:GetSprite()
-  if sprite:GetAnimation() == "TeleportDown" or
-      sprite:GetAnimation() == "TeleportUp" or
-      sprite:GetAnimation() == "TeleportLeft" or
-      sprite:GetAnimation() == "TeleportRight" or
-      sprite:GetAnimation() == "Jump" or
-      sprite:GetAnimation() == "Trapdoor" or
-      sprite:GetAnimation() == "Pickup" or
-      sprite:GetAnimation() == "LiftItem" or
-      sprite:GetAnimation() == "PickupWalkDown" or
-      sprite:GetAnimation() == "PickupWalkUp" or
-      sprite:GetAnimation() == "PickupWalkLeft" or
-      sprite:GetAnimation() == "PickupWalkRight"
+  local anim = sprite:GetAnimation()
+  if anim == "TeleportDown" or
+      anim == "TeleportUp" or
+      anim == "TeleportLeft" or
+      anim == "TeleportRight" or
+      anim == "Jump" or
+      anim == "Trapdoor" or
+      anim == "Pickup" or
+      anim == "LiftItem" or
+      anim == "PickupWalkDown" or
+      anim == "PickupWalkUp" or
+      anim == "PickupWalkLeft" or
+      anim == "PickupWalkRight" or
+      anim == "UseItem" or
+      anim == "Sad" or
+      anim == "Happy"
   then
     MolochMod:HideScythe(false)
-    appearTimer = sprite:GetCurrentAnimationData():GetLength() / 60 - 0.2
+    appearTimer = sprite:GetCurrentAnimationData():GetLength() - 0.2
   end
 end
 
@@ -201,7 +202,7 @@ function MolochMod:ApplyScythePositioning(sprite, scythes, player)
   elseif math.abs((sprite.Rotation + 360) - rot) < math.abs(sprite.Rotation - rot) then
     sprite.Rotation = sprite.Rotation + 360
   end
-  if (playerData.molochScythesState == 1) then
+  if (playerData.molochScythesState == 1 or playerData.molochScythesState == 3) then
     MolochMod:QuadraticInterpDirections(sprite, scythes, rot, offset, depth, lerpSpeed)
   elseif (playerData.molochScythesState == 2) then
     sprite.Rotation = rot
@@ -226,13 +227,29 @@ local CHARGE_METER_ANIMATIONS = {
 }
 
 function MolochMod:NewChargeBarSprite()
-  local mySprite = Sprite()
-  mySprite:Load(CHARGE_WHEEL_GFX, true)
-  return mySprite
+  local sprite = Sprite()
+  sprite:Load(CHARGE_WHEEL_GFX, true)
+  return sprite
 end
 
+function MolochMod:GetAnimationLengthTo(sprite, num)
+  num = num or 4
+  if (num > 4) then return end
+  local animData = sprite:GetAllAnimationData()
+  local totalLen = 0
+  for i = 1, num do
+    totalLen = totalLen + animData[i]:GetLength()
+  end
+  return totalLen
+end
+
+local holdTimer = 0
+local CHARGE_METER_RENDER_OFFSET = Vector(40, -50)
 local pressedLastFrame
 local chargeWheel = MolochMod:NewChargeBarSprite()
+local maxCharge = MolochMod:GetAnimationLengthTo(chargeWheel, 2)
+local chargeSpeed = 10
+local threshold = 20
 
 --handling swinging the scythe
 function MolochMod:SwingScythe()
@@ -261,23 +278,28 @@ function MolochMod:SwingScythe()
       Input.IsActionPressed(ButtonAction.ACTION_SHOOTDOWN, player.ControllerIndex)
   if pressedThisFrame
   then
-    if (holdTimer <= maxCharge) then
-      holdTimer = holdTimer + 1
+    if (maxCharge + threshold > holdTimer) then
+      local chargeIncrement = chargeSpeed / player.MaxFireDelay -- higher number means faster charge
+      holdTimer = holdTimer + chargeIncrement
     end
-    if holdTimer > 10 and player:HasInvincibility() == false
+
+    if holdTimer > threshold and player:HasInvincibility() == false
         and playerData.scytheCache.Visible == true then
       if (sprite:IsPlaying("Charging") == false) then
         sprite:Play("Charging", true)
+        if (player:GetHeadDirection() ~= -1) then
+          player:GetData().molochScythesState = 3
+          MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
+        end
       end
-      chargeWheel.PlaybackSpeed = 0.5
-      if (holdTimer >= maxCharge) then
+      if holdTimer - threshold >= maxCharge - 2 then
         chargeWheel:Play(CHARGE_METER_ANIMATIONS.CHARGED)
-      elseif (holdTimer < maxCharge) and (holdTimer > 220) then
+      elseif holdTimer - threshold >= MolochMod:GetAnimationLengthTo(chargeWheel, 1) - 2 and holdTimer - threshold < maxCharge - 2 then
         chargeWheel:Play(CHARGE_METER_ANIMATIONS.START_CHARGED)
       else
-        chargeWheel:Play(CHARGE_METER_ANIMATIONS.CHARGING)
+        chargeWheel:SetFrame(CHARGE_METER_ANIMATIONS.CHARGING, math.ceil(holdTimer) - threshold)
       end
-    elseif holdTimer <= 20 then
+    elseif holdTimer <= threshold then
       --add a delay between swings
       if sprite:IsPlaying("Swing") == false and swingTimer <= 0 and player:HasInvincibility() == false
           and playerData.scytheCache.Visible == true then
@@ -365,13 +387,11 @@ function MolochMod:ForceScytheHeadDirection(player, inputHook, buttonAction)
   end
   if (data.molochScythesState == 1 or data.molochScythesState == 2) and currentValue <= 0.1 then
     local returnVal
-
     if InputDirections[buttonAction] == data.molochScythesLastCardinalDirection then
       returnVal = 0.01
     else
       returnVal = 0.0
     end
-
     if inputHook == InputHook.IS_ACTION_PRESSED then
       return returnVal > 0
     end
@@ -478,6 +498,7 @@ function MolochMod:ScytheEffectUpdate(scythe)
 
   if sprite:IsFinished("Charging") then
     sprite:Play("Idle", true)
+    playerData.molochScythesState = 1
   end
 
   if sprite:IsFinished("Swing") then
