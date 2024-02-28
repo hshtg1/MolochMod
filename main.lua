@@ -71,7 +71,9 @@ function MolochMod:SetAppearTimer(appear)
   appearTimer = appear
 end
 
-function MolochMod:HideScythe(isVisible)
+function MolochMod:HideScythe(isVisible, keep)
+  local keep = keep or false
+  keepInvisible = keep
   local player = Isaac.GetPlayer()
   if player:GetPlayerType() ~= molochType then
     return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.

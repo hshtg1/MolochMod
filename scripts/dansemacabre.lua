@@ -20,6 +20,9 @@ local lerpB = 1
 --cached glow
 local glow
 local glowStage = 0
+--danse scaling
+local extraKillDanseScale = 0
+local maxDanseScale = 1.5
 
 local function onStart(_, continued)
     if continued then
@@ -34,6 +37,8 @@ function MolochMod:InitializeDanseMacabre(player)
         return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
     end
     player:SetPocketActiveItem(DANSE_MACABRE_ITEM_ID, ActiveSlot.SLOT_POCKET, true)
+    local playerData = player:GetData()
+    playerData.danseScale = playerData.danseScale or 1.0
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_INIT, MolochMod.InitializeDanseMacabre)
@@ -45,10 +50,8 @@ function MolochMod:UseDanseMacabre(collectibleType, rng, player, useFlags, activ
     local effect = Isaac.Spawn(EntityType.ENTITY_EFFECT, DANCE_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
         :ToEffect()
     effect:FollowParent(player)
-    local sprite = effect:GetSprite()
     --hide the scythes for the duration of the spin/dance animation
-    MolochMod:HideScythe(false)
-    MolochMod:SetAppearTimer(sprite:GetCurrentAnimationData():GetLength() / 60)
+    MolochMod:HideScythe(false, true)
     sfx:Play(DANSE_SPIN, 1.3)
     return {
         Discharge = true,
@@ -71,15 +74,23 @@ function MolochMod:DanceEffectUpdate(dance)
     -- Handle removing the animation when the spin is done.
     if sprite:IsFinished("Dance") then
         dance:Remove()
-        MolochMod:HideScythe(true)
+        MolochMod:HideScythe(true, false)
         DANCE_DAMAGE_MULTIPLIER = MIN_DANCE_DAMAGE_MULTIPLIER
         lerpR = 1
         lerpG = 1
         lerpB = 1
         killCount = 0
         glowStage = 0
+        extraKillDanseScale = 0
         return
     end
+    --scale danse macabre according to the statsscale values
+    local danseScale = player:GetData().danseScale + extraKillDanseScale
+    if (danseScale > maxDanseScale) then
+        danseScale = maxDanseScale
+    end
+    print(danseScale)
+    dance.SpriteScale = Vector(danseScale, danseScale)
     for i = 1, 2 do
         -- Get the "null capsule", which is the hitbox defined by the null layer in the anm2.
         local capsule = dance:GetNullCapsule("Hit" .. i)
@@ -120,6 +131,10 @@ end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, MolochMod.DanceEffectUpdate, DANCE_EFFECT_ID)
 
+function MolochMod:AddRangeDanse(num)
+    extraKillDanseScale = extraKillDanseScale + 0.02 * num
+end
+
 function MolochMod:ChargeDanse(ent)
     local player = Isaac.GetPlayer()
     local playerData = player:GetData()
@@ -135,14 +150,17 @@ function MolochMod:ChargeDanse(ent)
     if data.HitBlacklist[GetPtrHash(ent)] then
         if (ent:IsBoss()) then
             killCount = killCount + 5
+            MolochMod:AddRangeDanse(5)
         else
             killCount = killCount + 1
+            MolochMod:AddRangeDanse(1)
         end
 
         print("KillCount:" .. tostring(killCount))
         if (killCount >= 3) then
             DANCE_DAMAGE_MULTIPLIER = lib.Lerp(DANCE_DAMAGE_MULTIPLIER, MAX_DANCE_DAMAGE_MULTIPLIER, lerpSpeed)
-            killCount = 0
+            killCount = killCount - 3
+            --adding a glow to the player with kills
             if (glow == nil) then
                 glow = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
                     :ToEffect()

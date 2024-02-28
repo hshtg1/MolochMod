@@ -8,6 +8,8 @@ local playerMinTearRange = 200
 local playerBaseTearRange = 260
 local scythesMaxSize = 2.0
 local scythesMinSize = 0.75
+local danseMinSize = 0.5
+local danseMaxSize = 1.5
 --attack delay
 local playerMaxTears = 1000.0
 local playerMinTears = 200.0
@@ -22,16 +24,21 @@ function MolochMod:EvaluateCache(player, cacheFlags)
     --scalling the scythes accordingly to player size and range
     local scythes = MolochMod:GetScythes(player)
     local playerData = player:GetData()
-    playerData.scythesScale = 1.0
-    playerData.scythesDelay = 0.4
+    playerData.scythesScale = playerData.scythesScale or 1.0
+    playerData.danseScale = playerData.danseScale or 1.0
+    playerData.scythesDelay = playerData.scythesDelay or 0.4
+
     if cacheFlags & CacheFlag.CACHE_SIZE == CacheFlag.CACHE_SIZE then
         if scythes ~= nil then
-            if (scythes.SpriteScale.X > player.SpriteScale.X) then
+            --better condition here to check for the whole sprite scale
+            if ((scythes.SpriteScale.X * scythes.SpriteScale.Y) > (player.SpriteScale.X * player.SpriteScale.Y)) then
                 scythes.SpriteScale = scythes.SpriteScale * 0.8
                 playerData.scythesScale = playerData.scythesScale * 0.8
-            elseif (player.SpriteScale.X > scythes.SpriteScale.X) then
+                playerData.danseScale = playerData.danseScale * 0.8
+            elseif ((scythes.SpriteScale.X * scythes.SpriteScale.Y) < (player.SpriteScale.X * player.SpriteScale.Y)) then
                 scythes.SpriteScale = scythes.SpriteScale * 1.25
                 playerData.scythesScale = playerData.scythesScale * 1.25
+                playerData.danseScale = playerData.danseScale * 1.25
             end
         end
     end
@@ -41,14 +48,22 @@ function MolochMod:EvaluateCache(player, cacheFlags)
             local playerData = player:GetData()
             if (range > playerBaseTearRange) then
                 playerData.scythesScale = math.min(
-                    lib.Lerp(1.0, scythesMaxSize,
+                    lib.Lerp(playerData.scythesScale, scythesMaxSize,
                         (range - playerBaseTearRange) / (playerMaxTearRange - playerBaseTearRange)),
                     scythesMaxSize)
+                playerData.danseScale = math.min(
+                    lib.Lerp(playerData.danseScale, danseMaxSize,
+                        (range - playerBaseTearRange) / (playerMaxTearRange - playerBaseTearRange)),
+                    danseMaxSize)
             else
                 playerData.scythesScale = math.max(
-                    lib.Lerp(scythesMinSize, 1.0,
+                    lib.Lerp(scythesMinSize, playerData.scythesScale,
                         (range - playerMinTearRange) / (playerBaseTearRange - playerMinTearRange)),
                     scythesMinSize)
+                playerData.danseScale = math.max(
+                    lib.Lerp(danseMinSize, playerData.danseScale,
+                        (range - playerMinTearRange) / (playerBaseTearRange - playerMinTearRange)),
+                    danseMinSize)
             end
 
             scythes.SpriteScale = Vector(playerData.scythesScale, playerData.scythesScale)
