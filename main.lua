@@ -160,19 +160,19 @@ function MolochMod:ApplyScythePositioning(sprite, scythes, player)
   then
     rot = 180
     offset = Vector(0, -15)
-    depth = -10
+    depth = -5
     playerData.molochScythesLastCardinalDirection = Direction.UP
   elseif (headDir == 0)
   then
     rot = 90
     offset = Vector(-10, -15)
-    depth = -10
+    depth = -5
     playerData.molochScythesLastCardinalDirection = Direction.LEFT
   elseif (headDir == 2)
   then
     rot = -90
     offset = Vector(10, -15)
-    depth = -10
+    depth = -5
     playerData.molochScythesLastCardinalDirection = Direction.RIGHT
   end
   if playerData.playerHurt then

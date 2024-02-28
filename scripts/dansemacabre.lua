@@ -17,6 +17,9 @@ local lerpSpeed = 0.5
 local lerpR = 1
 local lerpG = 1
 local lerpB = 1
+--cached glow
+local glow
+local glowStage = 0
 
 local function onStart(_, continued)
     if continued then
@@ -31,9 +34,6 @@ function MolochMod:InitializeDanseMacabre(player)
         return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
     end
     player:SetPocketActiveItem(DANSE_MACABRE_ITEM_ID, ActiveSlot.SLOT_POCKET, true)
-    local glow = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
-        :ToEffect()
-    glow:FollowParent(player)
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_INIT, MolochMod.InitializeDanseMacabre)
@@ -77,6 +77,7 @@ function MolochMod:DanceEffectUpdate(dance)
         lerpG = 1
         lerpB = 1
         killCount = 0
+        glowStage = 0
         return
     end
     for i = 1, 2 do
@@ -142,6 +143,16 @@ function MolochMod:ChargeDanse(ent)
         if (killCount >= 3) then
             DANCE_DAMAGE_MULTIPLIER = lib.Lerp(DANCE_DAMAGE_MULTIPLIER, MAX_DANCE_DAMAGE_MULTIPLIER, lerpSpeed)
             killCount = 0
+            if (glow == nil) then
+                glow = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
+                    :ToEffect()
+                glow:FollowParent(player)
+                glow:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
+                glow.DepthOffset = -10
+            end
+            if glowStage < 3 then
+                glowStage = glowStage + 1
+            end
             MolochMod:ColorScythes()
         end
     end
@@ -162,6 +173,14 @@ function MolochMod:UpdateColor()
     local playerData = player:GetData()
     local scythes = playerData.scytheCache
     scythes:SetColor(lib.NewColor(lerpR, lerpG, lerpB), 15, 1, false, false)
+    if glow ~= nil then
+        if glowStage ~= 0 then
+            glow.Visible = true
+            glow:GetSprite():Play("Stage " .. tostring(glowStage))
+        elseif glowStage == 0 then
+            glow.Visible = false
+        end
+    end
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_UPDATE, MolochMod.UpdateColor)
