@@ -16,7 +16,7 @@ local SCYTHE_EFFECT_ID = Isaac.GetEntityVariantByName("Scythe Swing")
 local SCYTHES_SWING = Isaac.GetSoundIdByName("Scythes Swing")
 DAMAGE_MULTIPLIER = 2.5
 local scytheOffset = Vector(-5, 0)
-local maxSwingTimer = 0.4
+local maxSwingTimer = 0.5
 local swingTimer = 0
 local appearTimer = 0
 local keepInvisible = false
@@ -251,7 +251,7 @@ local pressedLastFrame
 local chargeWheel = MolochMod:NewChargeBarSprite()
 local maxCharge = MolochMod:GetAnimationLengthTo(chargeWheel, 2)
 local chargeSpeed = 10
-local threshold = 20
+local threshold = 30
 
 --handling swinging the scythe
 function MolochMod:SwingScythe()
@@ -281,10 +281,11 @@ function MolochMod:SwingScythe()
   if pressedThisFrame
   then
     if (maxCharge + threshold > holdTimer) then
-      local chargeIncrement = chargeSpeed / player.MaxFireDelay -- higher number means faster charge
+      local chargeIncrement = chargeSpeed / player.MaxFireDelay -- higher number for chargeSpeed means faster charge
       holdTimer = holdTimer + chargeIncrement
     end
 
+    --the ranged attack
     if holdTimer > threshold and player:HasInvincibility() == false
         and playerData.scytheCache.Visible == true then
       if (sprite:IsPlaying("Charging") == false) then
@@ -294,6 +295,7 @@ function MolochMod:SwingScythe()
           MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
         end
       end
+      --setting accurate charge bar animations
       if holdTimer - threshold >= maxCharge - 2 then
         chargeWheel:Play(CHARGE_METER_ANIMATIONS.CHARGED)
       elseif holdTimer - threshold >= MolochMod:GetAnimationLengthTo(chargeWheel, 1) - 2 and holdTimer - threshold < maxCharge - 2 then
@@ -303,6 +305,7 @@ function MolochMod:SwingScythe()
       end
     elseif holdTimer <= threshold then
       --add a delay between swings
+      --the melee attack
       if sprite:IsPlaying("Swing") == false and swingTimer <= 0 and player:HasInvincibility() == false
           and playerData.scytheCache.Visible == true then
         if (player:GetHeadDirection() ~= -1) then
@@ -317,12 +320,12 @@ function MolochMod:SwingScythe()
     end
   end
   if pressedLastFrame and not pressedThisFrame then
-    holdTimer = 0
     chargeWheel:Play(CHARGE_METER_ANIMATIONS.DISAPPEAR)
-    if (sprite:IsPlaying("Charging") == true) then
+    if sprite:IsPlaying("Charging") then
       sprite:SetLastFrame()
     end
     --shoot out a beam (rope)
+    holdTimer = 0
   end
   chargeWheel:Render(Isaac.WorldToRenderPosition(player.Position + CHARGE_METER_RENDER_OFFSET), Vector(0, 0),
     Vector(0, 0))
@@ -374,7 +377,8 @@ InputDirections[ButtonAction.ACTION_SHOOTDOWN] = Direction.DOWN
 
 --force the player to look in the direction of swing
 function MolochMod:ForceScytheHeadDirection(player, inputHook, buttonAction)
-  local player = Isaac.GetPlayer()
+  if not player or not player:ToPlayer() then return end
+  player = player:ToPlayer()
   if player:GetPlayerType() ~= molochType or player == nil then
     return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
   end
