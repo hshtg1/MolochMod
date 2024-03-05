@@ -1,6 +1,7 @@
 MolochMod.Lib = include("scripts/lib"):Init(MolochMod)
 local lib = MolochMod.Lib
 local molochType = Isaac.GetPlayerTypeByName("Moloch", false)
+local json = require("json")
 --set up some variables
 --sizing
 local playerMaxTearRange = 1000
@@ -16,29 +17,59 @@ local playerMinTears = 200.0
 local playerBaseTears = 10.0
 local scythesMaxTears = 1.0
 local scythesMinTears = 0.01
+--persistentData
+MolochMod.PERSISTENT_DATA = MolochMod.PERSISTENT_DATA or {}
+
+local function onStart(_, isContinued)
+    local player = Isaac.GetPlayer()
+    if isContinued then
+        player:AddCacheFlags(CacheFlag.CACHE_SIZE)
+        player:AddCacheFlags(CacheFlag.CACHE_RANGE)
+        player:EvaluateItems()
+    else
+        MolochMod:RemoveData()
+        MolochMod.PERSISTENT_DATA.SCYTHES_SCALE = nil
+        MolochMod.PERSISTENT_DATA.DANSE_SCALE = nil
+        player:AddCacheFlags(CacheFlag.CACHE_SIZE)
+        player:AddCacheFlags(CacheFlag.CACHE_RANGE)
+        player:EvaluateItems()
+    end
+end
+MolochMod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, onStart)
 
 function MolochMod:EvaluateCache(player, cacheFlags)
     if player:GetPlayerType() ~= molochType then
         return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
     end
+    if MolochMod:HasData() then
+        MolochMod.PERSISTENT_DATA = json.decode(MolochMod:LoadData())
+    end
+
     --scalling the scythes accordingly to player size and range
     local scythes = MolochMod:GetScythes(player)
     local playerData = player:GetData()
-    playerData.scythesScale = playerData.scythesScale or 1.0
-    playerData.danseScale = playerData.danseScale or 1.0
-    playerData.scythesDelay = playerData.scythesDelay or 0.4
+
+    MolochMod.PERSISTENT_DATA.SCYTHES_SCALE = MolochMod.PERSISTENT_DATA.SCYTHES_SCALE or 1.0
+    MolochMod.PERSISTENT_DATA.DANSE_SCALE = MolochMod.PERSISTENT_DATA.DANSE_SCALE or 1.0
+    playerData.scythesScale = MolochMod.PERSISTENT_DATA.SCYTHES_SCALE
+    playerData.danseScale = MolochMod.PERSISTENT_DATA.DANSE_SCALE
 
     if cacheFlags & CacheFlag.CACHE_SIZE == CacheFlag.CACHE_SIZE then
         if scythes ~= nil then
-            --better condition here to check for the whole sprite scale
-            if ((scythes.SpriteScale.X * scythes.SpriteScale.Y) > (player.SpriteScale.X * player.SpriteScale.Y)) then
-                scythes.SpriteScale = scythes.SpriteScale * 0.8
-                playerData.scythesScale = playerData.scythesScale * 0.8
-                playerData.danseScale = playerData.danseScale * 0.8
-            elseif ((scythes.SpriteScale.X * scythes.SpriteScale.Y) < (player.SpriteScale.X * player.SpriteScale.Y)) then
-                scythes.SpriteScale = scythes.SpriteScale * 1.25
+            local size = player.SpriteScale
+            local scale = playerData.scythesScale
+            local playerData = player:GetData()
+            if size.X * size.Y > scale ^ 2 then
                 playerData.scythesScale = playerData.scythesScale * 1.25
                 playerData.danseScale = playerData.danseScale * 1.25
+            elseif size.X * size.Y > scale ^ 2 then
+                playerData.scythesScale = playerData.scythesScale * 0.8
+                playerData.danseScale = playerData.danseScale * 0.8
+            end
+            if playerData.scythesScale ~= nil then
+                scythes.SpriteScale = Vector(playerData.scythesScale, playerData.scythesScale)
+                MolochMod.PERSISTENT_DATA.SCYTHES_SCALE = playerData.scythesScale
+                MolochMod.PERSISTENT_DATA.DANSE_SCALE = playerData.danseScale
             end
         end
     end
@@ -65,28 +96,11 @@ function MolochMod:EvaluateCache(player, cacheFlags)
                         (range - playerMinTearRange) / (playerBaseTearRange - playerMinTearRange)),
                     danseMinSize)
             end
-
-            scythes.SpriteScale = Vector(playerData.scythesScale, playerData.scythesScale)
-        end
-    end
-    if cacheFlags & CacheFlag.CACHE_FIREDELAY == CacheFlag.CACHE_FIREDELAY then
-        if scythes ~= nil then
-            local tears = player.MaxFireDelay
-            local playerData = player:GetData()
-            if (tears > playerBaseTears) then
-                playerData.scythesDelay = math.min(
-                    lib.Lerp(0.4, scythesMaxTears,
-                        (tears - playerBaseTears) / (playerMaxTears - playerBaseTears)),
-                    scythesMaxTears)
-            else
-                playerData.scythesDelay = math.max(
-                    lib.Lerp(scythesMinTears, 0.4,
-                        (tears - playerMinTears) / (playerBaseTears - playerMinTears)),
-                    scythesMinTears)
+            if playerData.scythesScale ~= nil then
+                scythes.SpriteScale = Vector(playerData.scythesScale, playerData.scythesScale)
+                MolochMod.PERSISTENT_DATA.SCYTHES_SCALE = playerData.scythesScale
+                MolochMod.PERSISTENT_DATA.DANSE_SCALE = playerData.danseScale
             end
-        end
-        if (playerData.scythesDelay ~= nil) then
-            MolochMod:SetSwingTimer(playerData.scythesDelay)
         end
     end
 end
@@ -100,3 +114,10 @@ function MolochMod:UsePillEvaluate(pillEffectID, player, useFlags)
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_USE_PILL, MolochMod.UsePillEvaluate)
+
+function MolochMod:preGameExit()
+    local jsonString = json.encode(MolochMod.PERSISTENT_DATA)
+    MolochMod:SaveData(jsonString)
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_PRE_GAME_EXIT, MolochMod.preGameExit)
