@@ -312,7 +312,7 @@ function MolochMod:SwingScythe()
           player:GetData().molochScythesState = 2
           MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
         end
-        sprite.PlaybackSpeed = 1
+        sprite.PlaybackSpeed = 0.5
         sprite:Play("Swing", true)
         swingTimer = maxSwingTimer
         sfx:Play(SCYTHES_SWING, 1.3)
