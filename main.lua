@@ -674,8 +674,13 @@ function MolochMod:UpdateRope(e)
           local isValidEnemy = entity:IsVulnerableEnemy() and entity:IsActiveEnemy() and not data.checkEntity
           if isValidEnemy and not data.HitBlacklist[GetPtrHash(entity)] then
             data.checkEntity = entity
-            entity:TakeDamage(player.Damage / 2, 0, EntityRef(player), 0)
             data.state = "hooked"
+            if entity:IsBoss() then
+              data.checkEntity:GetData().isBoss = true
+              data.state = "lunge"
+            end
+            entity:TakeDamage(player.Damage / 2, 0, EntityRef(player), 0)
+
             data.HitBlacklist[GetPtrHash(entity)] = true
           end
         end
@@ -708,6 +713,29 @@ function MolochMod:UpdateRope(e)
         sprite:Play("PinnedIdle", true)
       end
     end
+  elseif data.state == "lunge" then
+    if e:GetData().checkEntity and e:GetData().checkEntity:Exists() then
+      local enemy = e:GetData().checkEntity
+      enemy:AddEntityFlags(EntityFlag.FLAG_FREEZE)
+      e.Velocity = Vector.Zero
+      local targetVec = ((e.Position + e.Velocity) - player.Position)
+      if targetVec:Length() > 30 then
+        targetVec = targetVec:Resized(30)
+      end
+      player.Velocity = lib.Lerp(player.Velocity, targetVec, 0.5)
+      if e:GetData().checkEntity then
+        local enemy = e:GetData().checkEntity
+        player:SetMinDamageCooldown(30)
+        enemy.Position = e.Position
+        MolochMod:ClearFreezeAfterDelay(enemy, 60)
+        if e.Position:Distance(player.Position) < enemy.Size then
+          if e.Child then
+            e.Child:Remove()
+          end
+          e:Remove()
+        end
+      end
+    end
   elseif data.state == "return" then
     if data.HasHitGrid then
       local targetVec = ((player.Position + player.Velocity) - e.Position)
@@ -725,7 +753,7 @@ function MolochMod:UpdateRope(e)
         local enemy = e:GetData().checkEntity
         player:SetMinDamageCooldown(30)
         enemy.Position = e.Position
-        MolochMod:ClearFreezeAfterDelay(enemy, 100)
+        MolochMod:ClearFreezeAfterDelay(enemy, 60)
       end
     end
     if e.Position:Distance(player.Position) < 10 then

@@ -157,9 +157,9 @@ function MolochMod:ChargeDanse(ent)
         end
 
         print("KillCount:" .. tostring(killCount))
-        if (killCount >= 3) then
+        if (killCount >= 5) then
             DANCE_DAMAGE_MULTIPLIER = lib.Lerp(DANCE_DAMAGE_MULTIPLIER, MAX_DANCE_DAMAGE_MULTIPLIER, lerpSpeed)
-            killCount = killCount - 3
+            killCount = killCount - 5
             --adding a glow to the player with kills
             if (glow == nil) then
                 glow = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
