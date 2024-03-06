@@ -325,7 +325,9 @@ function MolochMod:SwingScythe()
     if sprite:IsPlaying("Charging") then
       sprite:SetLastFrame()
     end
-    MolochMod:UseHook(player, holdDirection)
+    if holdTimer > threshold then
+      MolochMod:UseHook(player)
+    end
     holdTimer = 0
   end
   chargeWheel:Render(Isaac.WorldToRenderPosition(player.Position + CHARGE_METER_RENDER_OFFSET), Vector(0, 0),
