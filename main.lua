@@ -105,6 +105,8 @@ end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_ENTITY_KILL, MolochMod.OnPlayerDeath)
 
+local delayTime = 0
+
 function MolochMod:EvaluateHideTimers()
   local player = Isaac.GetPlayer()
   if player:GetPlayerType() ~= molochType then
@@ -116,6 +118,7 @@ function MolochMod:EvaluateHideTimers()
   if (appearTimer <= 0 and effect.Visible == false and keepInvisible == false) then
     MolochMod:HideScythe(true)
   end
+  delayTime = delayTime - 1
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_UPDATE, MolochMod.EvaluateHideTimers)
@@ -280,7 +283,6 @@ function MolochMod:SwingScythe()
   if pressedThisFrame
   then
     playerData.lastAimDirection = player:GetShootingInput()
-    print(playerData.lastAimDirection)
     if (maxCharge + threshold > holdTimer) then
       local chargeIncrement = chargeSpeed /
           player.MaxFireDelay -- higher number for chargeSpeed means faster charge
@@ -325,12 +327,13 @@ function MolochMod:SwingScythe()
     if sprite:IsPlaying("Charging") then
       sprite:SetLastFrame()
     end
-    if holdTimer > threshold then
+    if holdTimer - threshold + 5 >= maxCharge then
       MolochMod:UseHook(player)
     end
     holdTimer = 0
   end
-  chargeWheel:Render(Isaac.WorldToRenderPosition(player.Position + CHARGE_METER_RENDER_OFFSET), Vector(0, 0),
+  --render the chargeWheel correctly in big rooms
+  chargeWheel:Render(Isaac.WorldToScreen(player.Position + CHARGE_METER_RENDER_OFFSET), Vector(0, 0),
     Vector(0, 0))
   sprite:Update()
   chargeWheel:Update()
@@ -587,17 +590,18 @@ local nilvector = Vector.Zero
 
 function MolochMod:UseHook(player)
   local aim = player:GetData().lastAimDirection
-  print(aim)
   local hook = Isaac.Spawn(1000, 1962, 50,
     player.Position - player.Velocity,
     aim * 15 * player.ShotSpeed * holdTimer / 100,
     player)
-  hook.GridCollisionClass = EntityGridCollisionClass.GRIDCOLL_WALLS
+  hook.GridCollisionClass = EntityGridCollisionClass.GRIDCOLL_NOPITS
   hook.CollisionDamage = 8
   hook:GetSprite().Rotation = hook.Velocity:GetAngleDegrees()
   hook.Parent = player
   hook.SpawnerEntity = player
+  hook.DepthOffset = 10
   hook:GetData().LaunchVel = hook.Velocity
+  hook:GetData().HasHitGrid = false
   hook:Update()
 end
 
@@ -632,16 +636,10 @@ function MolochMod:UpdateRope(e)
       EntityFlag.FLAG_NO_PHYSICS_KNOCKBACK)
     rope:ClearEntityFlags(EntityFlag.FLAG_APPEAR)
     rope.DepthOffset = -50
-
-    rope:GetSprite():Play("Idle", true)
-    rope:GetSprite():SetFrame(100)
     rope:Update()
 
     rope.SplatColor = Color(1, 1, 1, 0, 0, 0, 0)
-    local targetVec = ((player.Position + player.Velocity) - e.Position)
-    if targetVec:Length() > 30 then
-      targetVec = targetVec:Resized(30)
-    end
+
     --check enemy collision
   end
   e.Child:Update()
@@ -651,14 +649,12 @@ function MolochMod:UpdateRope(e)
   data.checkEntity = data.checkEntity or nil
 
   local room = Game():GetRoom()
-  local checkGrid = room:GetGridCollisionAtPos(e.Position + e.Velocity) >= 4 and 2 or
-      room:GetGridCollisionAtPos(e.Position) >= 4 and 1
+  local checkGrid = room:GetGridCollisionAtPos(e.Position + e.Velocity) >= 2 and 1 or
+      room:GetGridCollisionAtPos(e.Position) >= 2 and 2
 
   if checkGrid then
-    if e.Child then
-      e.Child:Remove()
-    end
-    e:Remove()
+    data.state = "return"
+    data.HasHitGrid = true
   end
 
   if data.state == "flying" then
@@ -667,49 +663,70 @@ function MolochMod:UpdateRope(e)
     end
     e:GetSprite():Play("Idle", true)
     e.SpriteRotation = (e.Position - player.Position):GetAngleDegrees() + 180
-    for i = 1, 2 do
-      -- Get the "null capsule", which is the hitbox defined by the null layer in the anm2.
-      local capsule = e:GetNullCapsule("Hit" .. i)
+    if not e:GetData().checkEntity and not checkGrid then
+      for i = 1, 2 do
+        -- Get the "null capsule", which is the hitbox defined by the null layer in the anm2.
+        local capsule = e:GetNullCapsule("Hit" .. i)
 
-      -- Search for all enemies within the capsule.
-      for _, entity in ipairs(Isaac.FindInCapsule(capsule, EntityPartition.ENEMY)) do
-        -- Make sure it can be hurt.
-        local isValidEnemy = entity:IsVulnerableEnemy() and entity:IsActiveEnemy() and not data.checkEntity
-        if isValidEnemy and not data.HitBlacklist[GetPtrHash(entity)] then
-          data.checkEntity = entity
-          entity:TakeDamage(player.Damage / 2, 0, EntityRef(player), 0)
-          data.state = "hooked"
-          data.HitBlacklist[GetPtrHash(entity)] = true
+        -- Search for all enemies within the capsule.
+        for _, entity in ipairs(Isaac.FindInCapsule(capsule, EntityPartition.ENEMY)) do
+          -- Make sure it can be hurt.
+          local isValidEnemy = entity:IsVulnerableEnemy() and entity:IsActiveEnemy() and not data.checkEntity
+          if isValidEnemy and not data.HitBlacklist[GetPtrHash(entity)] then
+            data.checkEntity = entity
+            entity:TakeDamage(player.Damage / 2, 0, EntityRef(player), 0)
+            data.state = "hooked"
+            data.HitBlacklist[GetPtrHash(entity)] = true
+          end
         end
       end
     end
+
     if data.checkEntity and not data.checkEntity:IsDead() then
       e:GetSprite():Play("Pinned", true)
-      e.Velocity = Vector.Zero
     elseif data.checkEntity and data.checkEntity:IsDead() then
       if e.Child then
         e.Child:Remove()
       end
       e:Remove()
+      data.checkEntity = nil
     end
   elseif data.state == "hooked" then
     if data.checkEntity then
-      e.Velocity = -data.LaunchVel
+      sfx:Play(SoundEffect.SOUND_DEATH_BURST_LARGE)
       data.state = "return"
       if e:GetData().checkEntity and e:GetData().checkEntity:Exists() then
         local enemy = e:GetData().checkEntity
-        enemy.Parent = e
-        enemy:AddEntityFlags(EntityFlag.FLAG_SLOW)
-        enemy.Velocity = (e.Position - enemy.Position)
+        enemy:AddEntityFlags(EntityFlag.FLAG_FREEZE)
+        local targetVec = ((player.Position + player.Velocity) - enemy.Position)
+        if targetVec:Length() > 30 then
+          targetVec = targetVec:Resized(30)
+        end
+        e.Velocity = lib.Lerp(enemy.Velocity, targetVec, 0.4)
       end
       if not sprite:IsPlaying("Pinned") then
         sprite:Play("PinnedIdle", true)
       end
     end
   elseif data.state == "return" then
-    if e:GetData().checkEntity then
-      local enemy = e:GetData().checkEntity
-      enemy:ClearEntityFlags(EntityFlag.FLAG_SLOW)
+    if data.HasHitGrid then
+      local targetVec = ((player.Position + player.Velocity) - e.Position)
+      if targetVec:Length() > 10 then
+        targetVec = targetVec:Resized(10)
+      end
+      e.Velocity = lib.Lerp(e.Velocity, targetVec, 0.1)
+    else
+      local targetVec = ((player.Position + player.Velocity) - e.Position)
+      if targetVec:Length() > 30 then
+        targetVec = targetVec:Resized(30)
+      end
+      e.Velocity = lib.Lerp(e.Velocity, targetVec, 0.5)
+      if e:GetData().checkEntity then
+        local enemy = e:GetData().checkEntity
+        player:SetMinDamageCooldown(30)
+        enemy.Position = e.Position
+        MolochMod:ClearFreezeAfterDelay(enemy, 100)
+      end
     end
     if e.Position:Distance(player.Position) < 10 then
       if e.Child then
@@ -738,3 +755,10 @@ MolochMod:AddCallback(ModCallbacks.MC_PRE_NPC_UPDATE, function(_, npc)
     return false
   end
 end, EntityType.ENTITY_EVIS)
+
+function MolochMod:ClearFreezeAfterDelay(enemy, delay)
+  delayTime = delay
+  if delayTime < 0 then
+    enemy.ClearEntityFlags(EntityFlag.FLAG_FREEZE)
+  end
+end
