@@ -586,6 +586,18 @@ end
 -- Connect the callback, only for our effect.
 MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, MolochMod.ScytheEffectUpdate, SCYTHE_EFFECT_ID)
 
+function MolochMod:GetEntitySegments(ent)
+  local segments = {}
+  local lastParent = ent:GetLastParent()
+  local index = 1
+  segments[index] = lastParent
+  while segments[index].Child ~= nil do
+    index = index + 1
+    segments[index] = segments[index - 1].Child
+  end
+  return segments
+end
+
 local nilvector = Vector.Zero
 
 function MolochMod:UseHook(player)
@@ -702,7 +714,6 @@ function MolochMod:UpdateRope(e)
       data.state = "return"
       if e:GetData().checkEntity and e:GetData().checkEntity:Exists() then
         local enemy = e:GetData().checkEntity
-        enemy:AddEntityFlags(EntityFlag.FLAG_FREEZE)
         local targetVec = ((player.Position + player.Velocity) - enemy.Position)
         if targetVec:Length() > 30 then
           targetVec = targetVec:Resized(30)
@@ -714,9 +725,20 @@ function MolochMod:UpdateRope(e)
       end
     end
   elseif data.state == "lunge" then
+    player.CanFly = true
     if e:GetData().checkEntity and e:GetData().checkEntity:Exists() then
       local enemy = e:GetData().checkEntity
-      enemy:AddEntityFlags(EntityFlag.FLAG_FREEZE)
+      local segments = MolochMod:GetEntitySegments(enemy)
+      if segments ~= nil then
+        for i, segment in pairs(segments) do
+          local segmentToFreeze = segments[i]:ToNPC()
+          if segmentToFreeze ~= nil then
+            segmentToFreeze:AddEntityFlags(EntityFlag.FLAG_FREEZE)
+          end
+        end
+      else
+        enemy:AddEntityFlags(EntityFlag.FLAG_FREEZE)
+      end
       e.Velocity = Vector.Zero
       local targetVec = ((e.Position + e.Velocity) - player.Position)
       if targetVec:Length() > 30 then
@@ -733,6 +755,7 @@ function MolochMod:UpdateRope(e)
             e.Child:Remove()
           end
           e:Remove()
+          player.CanFly = false
         end
       end
     end
@@ -751,6 +774,7 @@ function MolochMod:UpdateRope(e)
       e.Velocity = lib.Lerp(e.Velocity, targetVec, 0.5)
       if e:GetData().checkEntity then
         local enemy = e:GetData().checkEntity
+        enemy:AddEntityFlags(EntityFlag.FLAG_FREEZE)
         player:SetMinDamageCooldown(30)
         enemy.Position = e.Position
         MolochMod:ClearFreezeAfterDelay(enemy, 60)

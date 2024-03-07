@@ -147,7 +147,7 @@ function MolochMod:ChargeDanse(ent)
     if ent:IsEnemy() == false then
         return
     end
-    if data.HitBlacklist[GetPtrHash(ent)] then
+    if data.HitBlacklist ~= nil and data.HitBlacklist[GetPtrHash(ent)] then
         if (ent:IsBoss()) then
             killCount = killCount + 5
             MolochMod:AddRangeDanse(5)
