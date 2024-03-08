@@ -11,14 +11,6 @@ local scythesMaxSize = 2.0
 local scythesMinSize = 0.75
 local danseMinSize = 0.5
 local danseMaxSize = 1.5
---attack delay
-local playerMaxTears = 1000.0
-local playerMinTears = 200.0
-local playerBaseTears = 10.0
-local scythesMaxTears = 1.0
-local scythesMinTears = 0.01
---persistentData
-MolochMod.PERSISTENT_DATA = MolochMod.PERSISTENT_DATA or {}
 
 local function onStart(_, isContinued)
     local player = Isaac.GetPlayer()
@@ -40,9 +32,6 @@ MolochMod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, onStart)
 function MolochMod:EvaluateCache(player, cacheFlags)
     if player:GetPlayerType() ~= molochType then
         return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
-    end
-    if MolochMod:HasData() then
-        MolochMod.PERSISTENT_DATA = json.decode(MolochMod:LoadData())
     end
 
     --scalling the scythes accordingly to player size and range
@@ -114,10 +103,3 @@ function MolochMod:UsePillEvaluate(pillEffectID, player, useFlags)
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_USE_PILL, MolochMod.UsePillEvaluate)
-
-function MolochMod:preGameExit()
-    local jsonString = json.encode(MolochMod.PERSISTENT_DATA)
-    MolochMod:SaveData(jsonString)
-end
-
-MolochMod:AddCallback(ModCallbacks.MC_PRE_GAME_EXIT, MolochMod.preGameExit)

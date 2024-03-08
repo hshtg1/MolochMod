@@ -29,6 +29,10 @@ local function onStart(_, continued)
         return
     end
     DANCE_DAMAGE_MULTIPLIER = MIN_DANCE_DAMAGE_MULTIPLIER
+    killCount = 0
+    lerpR = 1
+    lerpG = 1
+    lerpB = 1
 end
 MolochMod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, onStart)
 
@@ -36,9 +40,24 @@ function MolochMod:InitializeDanseMacabre(player)
     if player:GetPlayerType() ~= molochType then
         return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
     end
+    --read data
     player:SetPocketActiveItem(DANSE_MACABRE_ITEM_ID, ActiveSlot.SLOT_POCKET, true)
     local playerData = player:GetData()
     playerData.danseScale = playerData.danseScale or 1.0
+    if MolochMod.PERSISTENT_DATA.KILLCOUNT ~= nil then
+        killCount = MolochMod.PERSISTENT_DATA.KILL_COUNT
+    end
+    --spawn glow
+    if MolochMod.PERSISTENT_DATA.GLOW_STAGE ~= nil then
+        glowStage = MolochMod.PERSISTENT_DATA.GLOW_STAGE
+    end
+    if glow == nil then
+        glow = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
+            :ToEffect()
+        glow:FollowParent(player)
+        glow:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
+        glow.DepthOffset = -10
+    end
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_INIT, MolochMod.InitializeDanseMacabre)
@@ -157,21 +176,23 @@ function MolochMod:ChargeDanse(ent)
         end
 
         print("KillCount:" .. tostring(killCount))
-        if (killCount >= 5) then
+        if (killCount % 5 == 0) then
             DANCE_DAMAGE_MULTIPLIER = lib.Lerp(DANCE_DAMAGE_MULTIPLIER, MAX_DANCE_DAMAGE_MULTIPLIER, lerpSpeed)
-            killCount = killCount - 5
             --adding a glow to the player with kills
-            if (glow == nil) then
-                glow = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
-                    :ToEffect()
-                glow:FollowParent(player)
-                glow:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
-                glow.DepthOffset = -10
-            end
             if glowStage < 3 then
                 glowStage = glowStage + 1
+                MolochMod.PERSISTENT_DATA.GLOW_STAGE = glowStage
+                if glow == nil then
+                    glow = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
+                        :ToEffect()
+                    glow:FollowParent(player)
+                    glow:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
+                    glow.DepthOffset = -10
+                end
             end
             MolochMod:ColorScythes()
+
+            MolochMod.PERSISTENT_DATA.KILL_COUNT = killCount
         end
     end
 end

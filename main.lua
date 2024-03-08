@@ -6,10 +6,13 @@ MolochMod.Lib = include("scripts/lib"):Init(MolochMod)
 include("scripts/dansemacabre")
 include("scripts/statsscale")
 require("scripts/chargeatk")
+local json = require("json")
 local lib = MolochMod.Lib
 
 local sfx = SFXManager()
 local molochType = Isaac.GetPlayerTypeByName("Moloch", false)
+--persistentData
+MolochMod.PERSISTENT_DATA = MolochMod.PERSISTENT_DATA or {}
 
 -- Setup some constants.
 local SCYTHE_EFFECT_ID = Isaac.GetEntityVariantByName("Scythe Swing")
@@ -43,6 +46,10 @@ function MolochMod:SpawnScytheApplyCostumes(player)
   MolochMod:InitializePlayerData(player, effect)
   keepInvisible = false
   --MolochMod:HideScythe(effect, false)
+  --initialize persistent data
+  if MolochMod:HasData() then
+    MolochMod.PERSISTENT_DATA = json.decode(MolochMod:LoadData())
+  end
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_INIT, MolochMod.SpawnScytheApplyCostumes)
@@ -255,6 +262,7 @@ local chargeWheel = MolochMod:NewChargeBarSprite()
 local maxCharge = MolochMod:GetAnimationLengthTo(chargeWheel, 2)
 local chargeSpeed = 10
 local threshold = 30
+local frameCount = 0
 
 --handling swinging the scythe
 function MolochMod:SwingScythe()
@@ -291,8 +299,12 @@ function MolochMod:SwingScythe()
     --the ranged attack
     if holdTimer > threshold and player:HasInvincibility() == false
         and playerData.scytheCache.Visible == true then
-      if (sprite:IsPlaying("Charging") == false) then
+      if sprite:IsPlaying("Charging") == false then
         sprite:Play("Charging", true)
+        if playerData.isCharging then
+          sprite:SetFrame(8)
+        end
+        playerData.isCharging = true
         if (player:GetHeadDirection() ~= -1) then
           player:GetData().molochScythesState = 3
           MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
@@ -310,7 +322,7 @@ function MolochMod:SwingScythe()
       --add a delay between swings
       --the melee attack
       if sprite:IsPlaying("Swing") == false and swingTimer <= 0 and player:HasInvincibility() == false
-          and playerData.scytheCache.Visible == true then
+          and playerData.scytheCache.Visible == true and not pressedLastFrame then
         if (player:GetHeadDirection() ~= -1) then
           player:GetData().molochScythesState = 2
           MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
@@ -327,6 +339,7 @@ function MolochMod:SwingScythe()
     if sprite:IsPlaying("Charging") then
       sprite:SetLastFrame()
     end
+    playerData.isCharging = false
     if holdTimer - threshold + 5 >= maxCharge then
       MolochMod:UseHook(player)
     end
@@ -335,9 +348,12 @@ function MolochMod:SwingScythe()
   --render the chargeWheel correctly in big rooms
   chargeWheel:Render(Isaac.WorldToScreen(player.Position + CHARGE_METER_RENDER_OFFSET), Vector(0, 0),
     Vector(0, 0))
-  sprite:Update()
+  if frameCount % 2 == 0 then
+    sprite:Update()
+  end
   chargeWheel:Update()
   pressedLastFrame = pressedThisFrame
+  frameCount = frameCount + 1
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_RENDER, MolochMod.SwingScythe)
@@ -507,12 +523,10 @@ function MolochMod:ScytheEffectUpdate(scythe)
   end
 
   data.HitBlacklist = data.HitBlacklist or {}
-
-  if sprite:IsFinished("Charging") then
+  if sprite:IsFinished("Charging") and not playerData.isCharging then
     sprite:Play("Idle", true)
     playerData.molochScythesState = 1
   end
-
   if sprite:IsFinished("Swing") then
     --remove knockedBack and capsule from playerData
     playerData.knockedBack = false
@@ -609,6 +623,7 @@ function MolochMod:UseHook(player)
   hook.GridCollisionClass = EntityGridCollisionClass.GRIDCOLL_NOPITS
   hook.CollisionDamage = 8
   hook:GetSprite().Rotation = hook.Velocity:GetAngleDegrees()
+  hook:GetSprite():Play("Idle", true)
   hook.Parent = player
   hook.SpawnerEntity = player
   hook.DepthOffset = 10
@@ -648,6 +663,8 @@ function MolochMod:UpdateRope(e)
       EntityFlag.FLAG_NO_PHYSICS_KNOCKBACK)
     rope:ClearEntityFlags(EntityFlag.FLAG_APPEAR)
     rope.DepthOffset = -50
+    rope:GetSprite():Play("Idle", true)
+    rope:GetSprite():SetFrame(100)
     rope:Update()
 
     rope.SplatColor = Color(1, 1, 1, 0, 0, 0, 0)
@@ -814,3 +831,10 @@ function MolochMod:ClearFreezeAfterDelay(enemy, delay)
     enemy.ClearEntityFlags(EntityFlag.FLAG_FREEZE)
   end
 end
+
+function MolochMod:preGameExit()
+  local jsonString = json.encode(MolochMod.PERSISTENT_DATA)
+  MolochMod:SaveData(jsonString)
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_PRE_GAME_EXIT, MolochMod.preGameExit)

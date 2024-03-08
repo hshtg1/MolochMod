@@ -1,5 +1,5 @@
 <AnimatedActor>
-	<Info CreatedBy="Unknown" CreatedOn="2/28/2024 6:58:37 PM" Version="28" Fps="30"/>
+	<Info CreatedBy="Unknown" CreatedOn="3/8/2024 8:36:11 PM" Version="29" Fps="30"/>
 	<Content>
 		<Spritesheets>
 			<Spritesheet Path="effects\scythes_melee.png" Id="0"/>
@@ -17,7 +17,9 @@
 			<Null Name="Hit1" Id="0" ShowRect="false"/>
 			<Null Name="Hit2" Id="1" ShowRect="false"/>
 		</Nulls>
-		<Events/>
+		<Events>
+			<Event Name="Loop" Id="0"/>
+		</Events>
 	</Content>
 	<Animations DefaultAnimation="Swing">
 		<Animation Name="Swing" FrameNum="10" Loop="false">
@@ -114,7 +116,9 @@
 				<NullAnimation NullId="0" Visible="true"/>
 				<NullAnimation NullId="1" Visible="true"/>
 			</NullAnimations>
-			<Triggers/>
+			<Triggers>
+				<Trigger EventId="0" AtFrame="7"/>
+			</Triggers>
 		</Animation>
 		<Animation Name="Charging Side" FrameNum="22" Loop="false">
 			<RootAnimation>
