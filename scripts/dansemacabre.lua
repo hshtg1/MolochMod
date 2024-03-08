@@ -26,6 +26,9 @@ local maxDanseScale = 1.5
 
 local function onStart(_, continued)
     if continued then
+        if MolochMod.PERSISTENT_DATA.GLOW_STAGE ~= nil then
+            glowStage = MolochMod.PERSISTENT_DATA.GLOW_STAGE
+        end
         return
     end
     DANCE_DAMAGE_MULTIPLIER = MIN_DANCE_DAMAGE_MULTIPLIER
@@ -48,9 +51,6 @@ function MolochMod:InitializeDanseMacabre(player)
         killCount = MolochMod.PERSISTENT_DATA.KILL_COUNT
     end
     --spawn glow
-    if MolochMod.PERSISTENT_DATA.GLOW_STAGE ~= nil then
-        glowStage = MolochMod.PERSISTENT_DATA.GLOW_STAGE
-    end
     if glow == nil then
         glow = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
             :ToEffect()
@@ -223,3 +223,10 @@ function MolochMod:UpdateColor()
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_UPDATE, MolochMod.UpdateColor)
+
+function MolochMod:ClearDanseCharge()
+    glow = nil
+    glowStage = 0
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_PRE_GAME_EXIT, MolochMod.ClearDanseCharge)
