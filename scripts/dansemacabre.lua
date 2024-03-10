@@ -19,7 +19,7 @@ local lerpG = 1
 local lerpB = 1
 --cached glow
 local glow
-local glowStage = 0
+local glowStage = 1
 --danse scaling
 local extraKillDanseScale = 0
 local maxDanseScale = 1.5
@@ -51,13 +51,13 @@ function MolochMod:InitializeDanseMacabre(player)
         killCount = MolochMod.PERSISTENT_DATA.KILL_COUNT
     end
     --spawn glow
-    if glow == nil then
-        glow = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
-            :ToEffect()
-        glow:FollowParent(player)
-        glow:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
-        glow.DepthOffset = -10
-    end
+    -- if glow == nil then
+    --     glow = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
+    --         :ToEffect()
+    --     glow:FollowParent(player)
+    --     glow:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
+    --     glow.DepthOffset = -10
+    -- end
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_INIT, MolochMod.InitializeDanseMacabre)
@@ -69,6 +69,8 @@ function MolochMod:UseDanseMacabre(collectibleType, rng, player, useFlags, activ
     local effect = Isaac.Spawn(EntityType.ENTITY_EFFECT, DANCE_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
         :ToEffect()
     effect:FollowParent(player)
+    local effectSprite = effect:GetSprite()
+    effectSprite:Play("Dance Stage " .. tostring(glowStage))
     --hide the scythes for the duration of the spin/dance animation
     MolochMod:HideScythe(false, true)
     sfx:Play(DANSE_SPIN, 1.3)
@@ -91,7 +93,7 @@ function MolochMod:DanceEffectUpdate(dance)
     print("DamageMultiplier:" .. tostring(DANCE_DAMAGE_MULTIPLIER))
 
     -- Handle removing the animation when the spin is done.
-    if sprite:IsFinished("Dance") then
+    if sprite:IsFinished("Dance Stage " .. tostring(glowStage)) then
         dance:Remove()
         MolochMod:HideScythe(true, false)
         DANCE_DAMAGE_MULTIPLIER = MIN_DANCE_DAMAGE_MULTIPLIER
@@ -99,8 +101,9 @@ function MolochMod:DanceEffectUpdate(dance)
         lerpG = 1
         lerpB = 1
         killCount = 0
-        glowStage = 0
+        glowStage = 1
         extraKillDanseScale = 0
+        MolochMod:SetGlow(glowStage, player)
         return
     end
     --scale danse macabre according to the statsscale values
@@ -182,15 +185,19 @@ function MolochMod:ChargeDanse(ent)
             if glowStage < 3 then
                 glowStage = glowStage + 1
                 MolochMod.PERSISTENT_DATA.GLOW_STAGE = glowStage
-                if glow == nil then
-                    glow = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
-                        :ToEffect()
-                    glow:FollowParent(player)
-                    glow:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
-                    glow.DepthOffset = -10
-                end
             end
+            --     if glow == nil then
+            --         glow = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
+            --             :ToEffect()
+            --         glow:FollowParent(player)
+            --         glow:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
+            --         glow.DepthOffset = -10
+            --     end
             MolochMod:ColorScythes()
+
+            if scythes then
+                MolochMod:SetGlow(glowStage, player)
+            end
 
             MolochMod.PERSISTENT_DATA.KILL_COUNT = killCount
         end
@@ -211,22 +218,22 @@ function MolochMod:UpdateColor()
     if (player:GetPlayerType() ~= molochType) then return end
     local playerData = player:GetData()
     local scythes = playerData.scytheCache
-    scythes:SetColor(lib.NewColor(lerpR, lerpG, lerpB), 15, 1, false, false)
-    if glow ~= nil then
-        if glowStage ~= 0 then
-            glow.Visible = true
-            glow:GetSprite():Play("Stage " .. tostring(glowStage))
-        elseif glowStage == 0 then
-            glow.Visible = false
-        end
-    end
+    local sprite = scythes:GetSprite()
+    --scythes:SetColor(lib.NewColor(lerpR, lerpG, lerpB), 15, 1, false, false)
+    -- if glow ~= nil then
+    --     if glowStage ~= 0 then
+    --         glow.Visible = true
+    --         glow:GetSprite():Play("Stage " .. tostring(glowStage))
+    --     elseif glowStage == 0 then
+    --         glow.Visible = false
+    --     end
+    -- end
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_UPDATE, MolochMod.UpdateColor)
 
 function MolochMod:ClearDanseCharge()
     glow = nil
-    glowStage = 0
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_PRE_GAME_EXIT, MolochMod.ClearDanseCharge)

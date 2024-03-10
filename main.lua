@@ -28,6 +28,9 @@ local keepInvisible = false
 local headbandCostume = Isaac.GetCostumeIdByPath("gfx/characters/moloch_headband.anm2") -- Exact path, with the "resources" folder as the root
 local tatooCostume = Isaac.GetCostumeIdByPath("gfx/characters/moloch_tatoo.anm2")       -- Exact path, with the "resources" folder as the root
 
+--include glow stages
+local glowStage = 1
+
 --starting setup, spawn scythe
 function MolochMod:SpawnScytheApplyCostumes(player)
   if player:GetPlayerType() ~= molochType then
@@ -153,6 +156,7 @@ function MolochMod:CheckForPlayerHidingScythes(player)
     MolochMod:HideScythe(false)
     appearTimer = sprite:GetCurrentAnimationData():GetLength() - 0.2
   end
+  print(glowStage)
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_UPDATE, MolochMod.CheckForPlayerHidingScythes)
@@ -286,7 +290,7 @@ function MolochMod:SwingScythe()
   else
     playerData.playerHurt = false
   end
-  if sprite:IsPlaying("Swing") == false and swingTimer <= 0
+  if sprite:IsPlaying("Swing Stage " .. tostring(glowStage)) == false and swingTimer <= 0
       and playerData.scytheCache.Visible == true then
     MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
   end
@@ -328,14 +332,14 @@ function MolochMod:SwingScythe()
     elseif holdTimer <= threshold then
       --add a delay between swings
       --the melee attack
-      if sprite:IsPlaying("Swing") == false and swingTimer <= 0 and player:HasInvincibility() == false
+      if sprite:IsPlaying("Swing Stage " .. tostring(glowStage)) == false and swingTimer <= 0 and player:HasInvincibility() == false
           and playerData.scytheCache.Visible == true and not pressedLastFrame then
         if (player:GetHeadDirection() ~= -1) then
           player:GetData().molochScythesState = 2
           MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
         end
         sprite.PlaybackSpeed = 1
-        sprite:Play("Swing", true)
+        sprite:Play("Swing Stage " .. tostring(glowStage), true)
         swingTimer = maxSwingTimer
         sfx:Play(SCYTHES_SWING, 1.3)
       end
@@ -417,7 +421,7 @@ function MolochMod:ForceScytheHeadDirection(player, inputHook, buttonAction)
 
   local currentValue = Input.GetActionValue(buttonAction, player.ControllerIndex)
   local sprite = data.scytheCache:GetSprite()
-  if sprite:IsPlaying("Swing") == false then
+  if sprite:IsPlaying("Swing Stage " .. tostring(glowStage)) == false then
     return
   end
   if (data.molochScythesState == 1 or data.molochScythesState == 2) and currentValue <= 0.1 then
@@ -531,14 +535,14 @@ function MolochMod:ScytheEffectUpdate(scythe)
 
   data.HitBlacklist = data.HitBlacklist or {}
   if sprite:IsFinished("Charging") and not playerData.isCharging then
-    sprite:Play("Idle", true)
+    sprite:Play("Idle Stage " .. tostring(glowStage), true)
     playerData.molochScythesState = 1
   end
-  if sprite:IsFinished("Swing") then
+  if sprite:IsFinished("Swing Stage " .. tostring(glowStage)) then
     --remove knockedBack and capsule from playerData
     playerData.knockedBack = false
     playerData.capsule = nil
-    sprite:Play("Idle", true)
+    sprite:Play("Idle Stage " .. tostring(glowStage), true)
     local entities = Isaac.GetRoomEntities()
     for _, entity in ipairs(entities) do
       local isValidEnemy = entity:IsVulnerableEnemy() and entity:IsActiveEnemy()
@@ -558,7 +562,7 @@ function MolochMod:ScytheEffectUpdate(scythe)
     -- Get the "null capsule", which is the hitbox defined by the null layer in the anm2.
     local capsule = scythe:GetNullCapsule("Hit" .. i)
     playerData.capsule = capsule
-    if (sprite:IsPlaying("Swing")) then
+    if (sprite:IsPlaying("Swing Stage " .. tostring(glowStage))) then
       -- Search for all entities within the capsule.
       for _, entity in ipairs(Isaac.FindInCapsule(capsule, EntityPartition.ALL)) do
         -- Make sure its a valid entity
@@ -864,6 +868,13 @@ function MolochMod:ClearFreezeAfterDelay(enemy, delay)
   if delayTime < 0 then
     enemy.ClearEntityFlags(EntityFlag.FLAG_FREEZE)
   end
+end
+
+function MolochMod:SetGlow(glow, player)
+  glowStage = glow
+  local playerData = player:GetData()
+  local sprite = playerData.scytheCache:GetSprite()
+  sprite:Play("Idle Stage " .. tostring(glowStage), true)
 end
 
 function MolochMod:preGameExit()
