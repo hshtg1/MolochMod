@@ -1,13 +1,13 @@
 <AnimatedActor>
-	<Info CreatedBy="deadan5" CreatedOn="3/10/2024 7:24:14 PM" Version="30" Fps="30"/>
+	<Info CreatedBy="deadan5" CreatedOn="3/10/2024 7:45:42 PM" Version="32" Fps="30"/>
 	<Content>
 		<Spritesheets>
 			<Spritesheet Path="help pls.png" Id="0"/>
 			<Spritesheet Path="effects\danse macabre dance new stage 3 new.png" Id="1"/>
-			<Spritesheet Path="scythes melee copy 3.png" Id="2"/>
+			<Spritesheet Path="effects\scythes_melee_copy_3.png" Id="2"/>
 			<Spritesheet Path="effects\danse macabre dance new.png" Id="3"/>
-			<Spritesheet Path="scythes melee copy.png" Id="4"/>
-			<Spritesheet Path="scythes melee copy 2.png" Id="5"/>
+			<Spritesheet Path="effects\scythes_melee.png" Id="4"/>
+			<Spritesheet Path="effects\scythes_melee_copy_2.png" Id="5"/>
 			<Spritesheet Path="effects\danse macabre dance new stage 2.png" Id="6"/>
 		</Spritesheets>
 		<Layers>
