@@ -164,10 +164,14 @@ function MolochMod:ApplyScythePositioning(sprite, scythes, player)
   local rot = 0
   --set offset according to fire direction and mov direction
   local offset = Vector(0, 0)
+
   local depth = 1
   local lerpSpeed = 0.3
   local playerData = player:GetData()
   playerData.molochScythesLastCardinalDirection = Direction.DOWN
+  if player:HasCollectible(CollectibleType.COLLECTIBLE_PONY) or player:HasCollectible(CollectibleType.COLLECTIBLE_WHITE_PONY) then
+    depth = -5
+  end
   if (headDir == 1)
   then
     rot = 180
@@ -206,6 +210,9 @@ function MolochMod:ApplyScythePositioning(sprite, scythes, player)
     then
       rot = -90
     end
+  end
+  if player.CanFly then
+    offset = offset + Vector(0, -5)
   end
 
   sprite.Rotation = sprite.Rotation % 360
