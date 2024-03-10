@@ -1,5 +1,5 @@
 <AnimatedActor>
-	<Info CreatedBy="HappyHead" CreatedOn="3/10/2024 4:47:56 PM" Version="16" Fps="45"/>
+	<Info CreatedBy="HappyHead" CreatedOn="3/10/2024 5:54:31 PM" Version="17" Fps="45"/>
 	<Content>
 		<Spritesheets>
 			<Spritesheet Path="effects\scythes_melee.png" Id="0"/>
@@ -27,7 +27,7 @@
 			</LayerAnimations>
 			<NullAnimations>
 				<NullAnimation NullId="0" Visible="true">
-					<Frame XPosition="-10" YPosition="0" XScale="300" YScale="300" Delay="9" Visible="true" RedTint="255" GreenTint="255" BlueTint="255" AlphaTint="255" RedOffset="0" GreenOffset="0" BlueOffset="0" Rotation="0" Interpolated="false"/>
+					<Frame XPosition="-10" YPosition="0" XScale="400" YScale="400" Delay="9" Visible="true" RedTint="255" GreenTint="255" BlueTint="255" AlphaTint="255" RedOffset="0" GreenOffset="0" BlueOffset="0" Rotation="0" Interpolated="false"/>
 				</NullAnimation>
 				<NullAnimation NullId="1" Visible="true">
 					<Frame XPosition="-10" YPosition="0" XScale="300" YScale="300" Delay="9" Visible="true" RedTint="255" GreenTint="255" BlueTint="255" AlphaTint="255" RedOffset="0" GreenOffset="0" BlueOffset="0" Rotation="0" Interpolated="false"/>

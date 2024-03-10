@@ -687,10 +687,12 @@ function MolochMod:UpdateRope(e)
   local room = Game():GetRoom()
   local checkGrid = room:GetGridCollisionAtPos(e.Position + e.Velocity) >= 2 and 1 or
       room:GetGridCollisionAtPos(e.Position) >= 2 and 2
-
-  if checkGrid then
-    data.state = "return"
-    data.HasHitGrid = true
+  local gridEntity = room:GetGridEntityFromPos(e.Position + e.Velocity)
+  if checkGrid and gridEntity then
+    if not gridEntity:ToPoop() then
+      data.state = "return"
+      data.HasHitGrid = true
+    end
   end
 
   if data.state == "flying" then
@@ -708,16 +710,33 @@ function MolochMod:UpdateRope(e)
         for _, entity in ipairs(Isaac.FindInCapsule(capsule, EntityPartition.ENEMY)) do
           -- Make sure it can be hurt.
           local isValidEnemy = entity:IsVulnerableEnemy() and entity:IsActiveEnemy() and not data.checkEntity
-          if isValidEnemy and not data.HitBlacklist[GetPtrHash(entity)] then
+          local isMovableTNT = (entity:GetType() == EntityType.ENTITY_MOVABLE_TNT)
+          if (isValidEnemy or isMovableTNT) and not data.HitBlacklist[GetPtrHash(entity)] then
             data.checkEntity = entity
             data.state = "hooked"
             if entity:IsBoss() then
               data.checkEntity:GetData().isBoss = true
               data.state = "lunge"
             end
-            entity:TakeDamage(player.Damage / 2, 0, EntityRef(player), 0)
+
+            if isValidEnemy then
+              entity:TakeDamage(player.Damage / 2, 0, EntityRef(player), 0)
+            elseif isMovableTNT then
+              entity:TakeDamage(5, 0, EntityRef(player), 0)
+            end
 
             data.HitBlacklist[GetPtrHash(entity)] = true
+          end
+        end
+        --also damage grid entities
+        local room = game:GetRoom()
+        for _, gridEntity in pairs(lib.FindGridEntitiesInRadius(capsule:GetPosition(), capsule:GetF1())) do
+          local gridIndex = gridEntity:GetGridIndex()
+          local damaged = room:DamageGrid(gridIndex, 100)
+          if damaged then
+            data.state = "return"
+            data.HasHitGrid = true
+            data.launchVel = Vector.Zero
           end
         end
       end
@@ -831,6 +850,14 @@ MolochMod:AddCallback(ModCallbacks.MC_PRE_NPC_UPDATE, function(_, npc)
     return false
   end
 end, EntityType.ENTITY_EVIS)
+
+-- function MolochMod:IgnorePoops(entity, collider, low)
+--   if entity.Variant == 1962 then
+--     return true
+--   end
+-- end
+
+-- MolochMod:AddCallback(ModCallbacks.MC_PRE_NPC_COLLISION, MolochMod.IgnorePoops, 1000)
 
 function MolochMod:ClearFreezeAfterDelay(enemy, delay)
   delayTime = delay
