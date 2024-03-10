@@ -1,5 +1,5 @@
 <AnimatedActor>
-	<Info CreatedBy="HappyHead" CreatedOn="3/3/2024 7:37:54 PM" Version="15" Fps="45"/>
+	<Info CreatedBy="HappyHead" CreatedOn="3/10/2024 4:47:56 PM" Version="16" Fps="45"/>
 	<Content>
 		<Spritesheets>
 			<Spritesheet Path="effects\scythes_melee.png" Id="0"/>

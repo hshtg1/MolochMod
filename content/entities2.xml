@@ -20,7 +20,7 @@
      <entity id="1000" variant="1749" subtype="151" anm2path="rope_effect.anm2" reroll="false" baseHP="0" stageHP="0" boss="0" champion="0" collisionDamage="0" collisionMass="1" collisionRadius="0" friction="1"  name="Grappling Hook Rope Movement Handler" shutdoors="false" numGridCollisionPoints="0" shadowSize="0">
         <gibs amount="0" blood="0" bone="0" eye="0" gut="0" large="0" />
     </entity>
-    	<entity anm2path="hp_grappling_hook_projectile.anm2" baseHP="0" boss="0" champion="0" collisionDamage="10" collisionMass="3" collisionRadius="13" friction="1" id="1000" name="Hook" numGridCollisionPoints="12" shadowSize="11" stageHP="0" variant="1962" subtype ="50">
+    	<entity anm2path="hook_throw.anm2" baseHP="0" boss="0" champion="0" collisionDamage="10" collisionMass="3" collisionRadius="13" friction="1" id="1000" name="Hook" numGridCollisionPoints="12" shadowSize="11" stageHP="0" variant="1962" subtype ="50">
         <gibs amount="0" blood="0" bone="0" eye="0" gut="0" large="0" />
       </entity>
 </entities>
