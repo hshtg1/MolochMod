@@ -475,7 +475,7 @@ function MolochMod:ScythesPickupCollision(player, entity)
     return
   end
   local isUnpickableRedHeart = not player:CanPickRedHearts() and pickup.Variant == PickupVariant.PICKUP_HEART and
-      pickup.SubType < 3
+      (pickup.SubType < 3 or pickup.SubType == 5)
   local isUnpickableBattery = pickup.Variant == PickupVariant.PICKUP_LIL_BATTERY and
       not player:NeedsCharge(ActiveSlot.SLOT_PRIMARY)
   if isUnpickableRedHeart or isUnpickableBattery then
