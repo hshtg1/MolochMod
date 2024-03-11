@@ -161,7 +161,6 @@ function MolochMod:CheckForPlayerHidingScythes(player)
     MolochMod:HideScythe(false)
     appearTimer = sprite:GetCurrentAnimationData():GetLength() - 0.2
   end
-  print(glowStage)
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_UPDATE, MolochMod.CheckForPlayerHidingScythes)
@@ -566,7 +565,6 @@ function MolochMod:ScytheEffectUpdate(scythe)
         data.HitBlacklist[GetPtrHash(entity)] = false
       end
     end
-    playerData.molochScythesState = 1
   end
 
   for i = 1, 2 do
@@ -615,6 +613,7 @@ function MolochMod:ScytheEffectUpdate(scythe)
         local gridIndex = gridEntity:GetGridIndex()
         room:DamageGrid(gridIndex, 100)
       end
+      playerData.molochScythesState = 1
     end
   end
 end
@@ -751,7 +750,6 @@ function MolochMod:UpdateRope(e)
           local damaged = room:DamageGrid(gridIndex, 100)
           if damaged then
             data.state = "return"
-            data.HasHitGrid = true
             data.launchVel = Vector.Zero
           end
         end
