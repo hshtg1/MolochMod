@@ -8,4 +8,16 @@
     <sound name="Danse Macabre">
         <sample weight="1" path="sound_danse2.wav" />
     </sound>
+        <sound name="Rope Swoosh">
+        <sample weight="1" path="swish_rope.wav" />
+    </sound>
+        <sound name="Rope Spin">
+        <sample weight="1" path="spinning_rope.wav" />
+    </sound>
+        <sound name="Hook Wall Hit">
+        <sample weight="1" path="wall_hook_hit.wav" />
+    </sound>
+        <sound name="Hook Scrape">
+        <sample weight="1" path="hook_scrape.wav" />
+    </sound>
 </sounds>

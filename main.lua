@@ -13,6 +13,11 @@ local sfx = SFXManager()
 local molochType = Isaac.GetPlayerTypeByName("Moloch", false)
 --persistentData
 MolochMod.PERSISTENT_DATA = MolochMod.PERSISTENT_DATA or {}
+--rope sounds
+local ROPE_SPIN = Isaac.GetSoundIdByName("Rope Spin")
+local ROPE_SWOOSH = Isaac.GetSoundIdByName("Rope Swoosh")
+local HOOK_HIT = Isaac.GetSoundIdByName("Hook Wall Hit")
+local HOOK_SCRAPE = Isaac.GetSoundIdByName("Hook Scrape")
 
 -- Setup some constants.
 local SCYTHE_EFFECT_ID = Isaac.GetEntityVariantByName("Scythe Swing")
@@ -321,6 +326,9 @@ function MolochMod:SwingScythe()
           MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
         end
       end
+      if not sfx:IsPlaying(ROPE_SPIN) then
+        sfx:Play(ROPE_SPIN, 1.3, 0, false, 0.8)
+      end
       --setting accurate charge bar animations
       if holdTimer - threshold >= maxCharge - 2 then
         chargeWheel:Play(CHARGE_METER_ANIMATIONS.CHARGED)
@@ -345,6 +353,7 @@ function MolochMod:SwingScythe()
       end
     end
   end
+  --on key released
   if pressedLastFrame and not pressedThisFrame then
     chargeWheel:Play(CHARGE_METER_ANIMATIONS.DISAPPEAR)
     if sprite:IsPlaying("Charging") then
@@ -352,7 +361,9 @@ function MolochMod:SwingScythe()
     end
     playerData.isCharging = false
     if holdTimer - threshold + 5 >= maxCharge then
+      --throw hook
       MolochMod:UseHook(player)
+      sfx:Play(ROPE_SWOOSH, 1.3, 0, false, 0.8)
     end
     holdTimer = 0
   end
@@ -696,6 +707,7 @@ function MolochMod:UpdateRope(e)
     if not gridEntity:ToPoop() then
       data.state = "return"
       data.HasHitGrid = true
+      sfx:Play(HOOK_HIT, 1, 0, false, 0.8)
     end
   end
 
@@ -813,6 +825,9 @@ function MolochMod:UpdateRope(e)
         targetVec = targetVec:Resized(10)
       end
       e.Velocity = lib.Lerp(e.Velocity, targetVec, 0.1)
+      if not sfx:IsPlaying(HOOK_SCRAPE) then
+        sfx:Play(HOOK_SCRAPE, 1.3)
+      end
     else
       local targetVec = ((player.Position + player.Velocity) - e.Position)
       if targetVec:Length() > 30 then
@@ -828,6 +843,7 @@ function MolochMod:UpdateRope(e)
       end
     end
     if e.Position:Distance(player.Position) < 10 then
+      sfx:Stop(HOOK_SCRAPE)
       if e.Child then
         e.Child:Remove()
       end
