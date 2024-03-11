@@ -833,13 +833,17 @@ function MolochMod:UpdateRope(e)
         sfx:Play(HOOK_SCRAPE, 1.3)
       end
       if not data.particle then
-        data.particle = Isaac.Spawn(EntityType.ENTITY_EFFECT, HOOK_SPARKLES, 0, e.Position, nilvector, player)
-        local particle = data.particle
+        local particle = Isaac.Spawn(EntityType.ENTITY_EFFECT, HOOK_SPARKLES, 0, e.Position, nilvector, player)
+        local sprite = particle:GetSprite()
+        sprite.Scale = sprite.Scale * 1.3
+        data.particle = particle
         e.Child = particle
       else
         local particle = data.particle
+        particle.SpriteRotation = (particle.Position - player.Position):GetAngleDegrees() + 180
         particle.Position = e.Position
       end
+      e.SpriteRotation = (e.Position - player.Position):GetAngleDegrees() + 180
     else
       local targetVec = ((player.Position + player.Velocity) - e.Position)
       if targetVec:Length() > 30 then
