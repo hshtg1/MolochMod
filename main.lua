@@ -18,6 +18,8 @@ local ROPE_SPIN = Isaac.GetSoundIdByName("Rope Spin")
 local ROPE_SWOOSH = Isaac.GetSoundIdByName("Rope Swoosh")
 local HOOK_HIT = Isaac.GetSoundIdByName("Hook Wall Hit")
 local HOOK_SCRAPE = Isaac.GetSoundIdByName("Hook Scrape")
+--hook sparkles
+local HOOK_SPARKLES = Isaac.GetEntityVariantByName("Hook Sparkles")
 
 -- Setup some constants.
 local SCYTHE_EFFECT_ID = Isaac.GetEntityVariantByName("Scythe Swing")
@@ -400,11 +402,15 @@ end
 MolochMod:AddCallback(ModCallbacks.MC_ENTITY_TAKE_DMG, MolochMod.AfterHitOnEnemy)
 
 function MolochMod:ResetScythesAnimation()
-  local player = Isaac.GetPlayer()
-  if player:GetPlayerType() ~= molochType then
-    return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+  local playerData
+  for i = 0, Game():GetNumPlayers() - 1 do
+    local player = Isaac.GetPlayer(i)
+    playerData = player:GetData()
+    if player:GetPlayerType() ~= molochType then
+      return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+    end
   end
-  local playerData = player:GetData()
+
   local scythes = playerData.scytheCache
   local sprite = scythes:GetSprite()
   sprite:Stop()
@@ -825,6 +831,14 @@ function MolochMod:UpdateRope(e)
       e.Velocity = lib.Lerp(e.Velocity, targetVec, 0.1)
       if not sfx:IsPlaying(HOOK_SCRAPE) then
         sfx:Play(HOOK_SCRAPE, 1.3)
+      end
+      if not data.particle then
+        data.particle = Isaac.Spawn(EntityType.ENTITY_EFFECT, HOOK_SPARKLES, 0, e.Position, nilvector, player)
+        local particle = data.particle
+        e.Child = particle
+      else
+        local particle = data.particle
+        particle.Position = e.Position
       end
     else
       local targetVec = ((player.Position + player.Velocity) - e.Position)
