@@ -232,6 +232,18 @@ end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_UPDATE, MolochMod.UpdateColor)
 
+function MolochMod:ResetDanse()
+    for i = 0, Game():GetNumPlayers() - 1 do
+        local player = Isaac.GetPlayer(i)
+        if player:GetPlayerType() ~= molochType then
+            return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+        end
+    end
+    MolochMod:HideScythe(true)
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_POST_NEW_ROOM, MolochMod.ResetDanse)
+
 function MolochMod:ClearDanseCharge()
     glow = nil
 end
