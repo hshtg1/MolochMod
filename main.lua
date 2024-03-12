@@ -166,14 +166,14 @@ function MolochMod:UpdateSouls(effect)
   end
   local a = player.Position + player.Velocity
   local b = -effect.Position
-  local orbitSpeed = 0.5
+  local orbitSpeed = 0.9
   t = lib.Lerp(t, 100 * math.pi, orbitSpeed)
   local originalVec = a + b
   if originalVec:Length() > 30 then
     originalVec = originalVec:Resized(30)
   end
   local targetVec = originalVec:Rotated(t)
-  effect.Velocity = lib.Lerp(effect.Velocity, targetVec, 0.4)
+  effect.Velocity = lib.Lerp(effect.Velocity, targetVec, 0.5)
   if effect.Position:Distance(player.Position) < 10
       and not effect:GetSprite():IsPlaying("Collect")
   then
@@ -191,8 +191,7 @@ MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, MolochMod.UpdateSouls,
 ---@param parent EntityProjectile
 local function getPositionOffset(parent, scale)
   local angle = parent.Velocity:Normalized() * 2
-  local height = parent.FallingAccel * parent.FallingSpeed
-  local offset = parent.PositionOffset + angle * scale + Vector(0, height / 2)
+  local offset = parent.PositionOffset + angle * scale
   return offset
 end
 
