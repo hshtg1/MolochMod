@@ -479,9 +479,8 @@ function MolochMod:AfterHitOnEnemy(enemy, amount, damageFlags, src, countdown)
       return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
     end
   end
-
   local isValidEnemy = (enemy:IsVulnerableEnemy() and enemy:IsActiveEnemy()) or enemy:IsBoss()
-  if isValidEnemy and damageFlags == damageFlags & DamageFlag.DAMAGE_NOKILL then
+  if isValidEnemy and damageFlags == damageFlags & DamageFlag.DAMAGE_NOKILL and src then
     local knockbackDir = src.Entity.Position - enemy.Position
     local playerData = src.Entity:GetData()
     if (playerData.knockedBack == false) then
@@ -835,13 +834,14 @@ function MolochMod:UpdateRope(e)
           if (isValidEnemy or isMovableTNT) and not data.HitBlacklist[GetPtrHash(entity)] then
             data.checkEntity = entity
             data.state = "hooked"
-            if entity:IsBoss() or entity.Mass >= 14 then
+            if (entity:IsBoss() or entity.Mass >= 20)
+                and not data.checkEntity:GetType() == EntityType.ENTITY_WALL_HUGGER then
               data.checkEntity:GetData().isBoss = true
               data.state = "lunge"
             end
 
             if isValidEnemy then
-              entity:TakeDamage(player.Damage / 2, 0, EntityRef(player), 0)
+              entity:TakeDamage(player.Damage, 0, EntityRef(player), 0)
             elseif isMovableTNT then
               entity:TakeDamage(5, 0, EntityRef(player), 0)
             end
@@ -875,14 +875,6 @@ function MolochMod:UpdateRope(e)
     if data.checkEntity then
       sfx:Play(SoundEffect.SOUND_DEATH_BURST_LARGE)
       data.state = "return"
-      if e:GetData().checkEntity and e:GetData().checkEntity:Exists() then
-        local enemy = e:GetData().checkEntity
-        local targetVec = ((player.Position + player.Velocity) - enemy.Position)
-        if targetVec:Length() > 30 then
-          targetVec = targetVec:Resized(30)
-        end
-        e.Velocity = lib.Lerp(enemy.Velocity, targetVec, 0.4)
-      end
       if not sprite:IsPlaying("Pinned") then
         sprite:Play("PinnedIdle", true)
       end
@@ -908,10 +900,16 @@ function MolochMod:UpdateRope(e)
         targetVec = targetVec:Resized(30)
       end
       player.Velocity = lib.Lerp(player.Velocity, targetVec, 0.5)
-      if e:GetData().checkEntity then
+      if e:GetData().checkEntity and e:GetData().checkEntity:Exists() then
         local enemy = e:GetData().checkEntity
         player:SetMinDamageCooldown(30)
-        enemy.Position = e.Position
+
+        local enemy = e:GetData().checkEntity
+        local targetVec = ((player.Position + player.Velocity) - enemy.Position)
+        if targetVec:Length() > 30 then
+          targetVec = targetVec:Resized(30)
+        end
+        e.Velocity = lib.Lerp(enemy.Velocity, targetVec, 0.4)
         MolochMod:ClearFreezeAfterDelay(enemy, 60)
         if e.Position:Distance(player.Position) < enemy.Size then
           if e.Child then
