@@ -114,6 +114,7 @@ end
 MolochMod:AddCallback(ModCallbacks.MC_POST_NEW_LEVEL, MolochMod.ScythesAppearAfterNewLevel)
 
 local lastEnemyHit
+local soulColor = lib.NewColor(1, 0, 0, 1)
 
 function MolochMod:OnEntityDeath(entity)
   if entity:ToPlayer() then
@@ -128,7 +129,7 @@ function MolochMod:OnEntityDeath(entity)
       entity.Position - entity.Velocity,
       Vector.Zero,
       entity)
-    soul.Color = lib.NewColor(1, 0, 0)
+    soul.Color = soulColor
     local sprite = soul:GetSprite()
     sprite.Scale = sprite.Scale * 1.3
   end
@@ -137,6 +138,23 @@ end
 MolochMod:AddCallback(ModCallbacks.MC_POST_ENTITY_KILL, MolochMod.OnEntityDeath)
 
 local t = 0
+
+function MolochMod:SoulInit(effect)
+  local length = 0.2
+  local scale = 1
+  local trail = Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SPRITE_TRAIL, 0,
+    effect.Position + effect.PositionOffset, Vector.Zero, effect):ToEffect()
+  trail:FollowParent(effect)
+  trail.Color = soulColor
+  trail.MinRadius = length
+  trail.SpriteScale = Vector.One * scale
+
+  trail:Update()
+
+  trail:GetData().parentProj = effect
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_INIT, MolochMod.SoulInit, 179)
 
 function MolochMod:UpdateSouls(effect)
   local player
@@ -160,7 +178,7 @@ function MolochMod:UpdateSouls(effect)
       and not effect:GetSprite():IsPlaying("Collect")
   then
     effect:GetSprite():Play("Collect", true)
-    sfx:Play(SoundEffect.SOUND_SOUL_PICKUP, 1, 10)
+    sfx:Play(SoundEffect.SOUND_SOUL_PICKUP, 1, 20)
   end
   if effect:GetSprite():IsFinished("Collect") then
     effect:Remove()
@@ -169,6 +187,31 @@ function MolochMod:UpdateSouls(effect)
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, MolochMod.UpdateSouls, 179)
+
+---@param parent EntityProjectile
+local function getPositionOffset(parent, scale)
+  local angle = parent.Velocity:Normalized() * 2
+  local height = parent.FallingAccel * parent.FallingSpeed
+  local offset = parent.PositionOffset + angle * scale + Vector(0, height / 2)
+  return offset
+end
+
+function MolochMod:UpdateTrail(trail)
+  local data = trail:GetData()
+
+  if data.parentProj then
+    -- handle position and removing
+    local parent = data.parentProj
+    if parent:Exists() then
+      trail.ParentOffset = getPositionOffset(parent, trail.SpriteScale.Y)
+    else
+      trail:Remove()
+    end
+  end
+  trail.Color = soulColor
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, MolochMod.UpdateSouls, EffectVariant.SPRITE_TRAIL)
 
 local delayTime = 0
 
