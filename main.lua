@@ -113,14 +113,62 @@ end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_NEW_LEVEL, MolochMod.ScythesAppearAfterNewLevel)
 
-function MolochMod:OnPlayerDeath(player)
-  if (player:ToPlayer()) then
+local lastEnemyHit
+
+function MolochMod:OnEntityDeath(entity)
+  if entity:ToPlayer() then
     MolochMod:HideScythe(false)
     keepInvisible = true
   end
+  if not lastEnemyHit then
+    return
+  end
+  if entity:ToNPC() and GetPtrHash(entity) == GetPtrHash(lastEnemyHit) then
+    local soul = Isaac.Spawn(1000, 179, 0,
+      entity.Position - entity.Velocity,
+      Vector.Zero,
+      entity)
+    soul.Color = lib.NewColor(1, 0, 0)
+    local sprite = soul:GetSprite()
+    sprite.Scale = sprite.Scale * 1.3
+  end
 end
 
-MolochMod:AddCallback(ModCallbacks.MC_POST_ENTITY_KILL, MolochMod.OnPlayerDeath)
+MolochMod:AddCallback(ModCallbacks.MC_POST_ENTITY_KILL, MolochMod.OnEntityDeath)
+
+local t = 0
+
+function MolochMod:UpdateSouls(effect)
+  local player
+  for i = 0, Game():GetNumPlayers() - 1 do
+    player = Isaac.GetPlayer(i)
+    if player:GetPlayerType() ~= molochType or not player then
+      return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+    end
+  end
+  local a = player.Position + player.Velocity
+  local b = -effect.Position
+  local orbitSpeed = 0.5
+  t = lib.Lerp(t, 100 * math.pi, orbitSpeed)
+  local originalVec = a + b
+  if originalVec:Length() > 30 then
+    originalVec = originalVec:Resized(30)
+  end
+  local targetVec = originalVec:Rotated(t)
+  effect.Velocity = lib.Lerp(effect.Velocity, targetVec, 0.4)
+  if effect.Position:Distance(player.Position) < 10
+      and not effect:GetSprite():IsPlaying("Collect")
+  then
+    effect:GetSprite():Play("Collect", true)
+    sfx:Play(SoundEffect.SOUND_SOUL_PICKUP, 1, 10)
+  end
+  if effect:GetSprite():IsFinished("Collect") then
+    effect:Remove()
+    t = 0
+  end
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, MolochMod.UpdateSouls, 179)
 
 local delayTime = 0
 
@@ -383,19 +431,23 @@ MolochMod:AddCallback(ModCallbacks.MC_POST_RENDER, MolochMod.SwingScythe)
 
 --knockback after a hit on enemy that doesnt kill it
 function MolochMod:AfterHitOnEnemy(enemy, amount, damageFlags, src, countdown)
-  local player = Isaac.GetPlayer()
-  if player:GetPlayerType() ~= molochType then
-    return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+  for i = 0, Game():GetNumPlayers() - 1 do
+    local player = Isaac.GetPlayer(i)
+    if player:GetPlayerType() ~= molochType then
+      return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+    end
   end
+
   local isValidEnemy = (enemy:IsVulnerableEnemy() and enemy:IsActiveEnemy()) or enemy:IsBoss()
   if isValidEnemy and damageFlags == damageFlags & DamageFlag.DAMAGE_NOKILL then
-    local knockbackDir = player.Position - enemy.Position
-    local playerData = player:GetData()
+    local knockbackDir = src.Entity.Position - enemy.Position
+    local playerData = src.Entity:GetData()
     if (playerData.knockedBack == false) then
       --print("Knockback player")
-      player:AddVelocity(knockbackDir:Resized(1.5))
+      src.Entity:AddVelocity(knockbackDir:Resized(1.5))
       playerData.knockedBack = true
     end
+    lastEnemyHit = enemy
   end
 end
 
@@ -518,7 +570,13 @@ function MolochMod:ScythesPickupCollision(player, entity)
 end
 
 function MolochMod:ScythesPickup(pickup)
-  local player = Isaac.GetPlayer()
+  local player
+  for i = 0, Game():GetNumPlayers() - 1 do
+    player = Isaac.GetPlayer(i)
+    if player:GetPlayerType() ~= molochType then
+      return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+    end
+  end
   local data = pickup:GetData()
   if (data.pickupCooldown or 0) > 0 then
     data.pickupCooldown = data.pickupCooldown - 1
