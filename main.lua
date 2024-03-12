@@ -480,7 +480,7 @@ function MolochMod:AfterHitOnEnemy(enemy, amount, damageFlags, src, countdown)
     end
   end
   local isValidEnemy = (enemy:IsVulnerableEnemy() and enemy:IsActiveEnemy()) or enemy:IsBoss()
-  if isValidEnemy and damageFlags == damageFlags & DamageFlag.DAMAGE_NOKILL and src then
+  if isValidEnemy and damageFlags == damageFlags & DamageFlag.DAMAGE_NOKILL and src.Entity then
     local knockbackDir = src.Entity.Position - enemy.Position
     local playerData = src.Entity:GetData()
     if (playerData.knockedBack == false) then
@@ -834,12 +834,10 @@ function MolochMod:UpdateRope(e)
           if (isValidEnemy or isMovableTNT) and not data.HitBlacklist[GetPtrHash(entity)] then
             data.checkEntity = entity
             data.state = "hooked"
-            if (entity:IsBoss() or entity.Mass >= 20)
-                and not data.checkEntity:GetType() == EntityType.ENTITY_WALL_HUGGER then
+            if (entity:IsBoss() or entity.Mass >= 20) and data.checkEntity:GetType() ~= EntityType.ENTITY_WALL_CREEP then
               data.checkEntity:GetData().isBoss = true
               data.state = "lunge"
             end
-
             if isValidEnemy then
               entity:TakeDamage(player.Damage, 0, EntityRef(player), 0)
             elseif isMovableTNT then
