@@ -9,7 +9,7 @@ local molochType = Isaac.GetPlayerTypeByName("Moloch", false)
 local DANSE_SPIN = Isaac.GetSoundIdByName("Danse Macabre")
 
 --constants
-local MIN_DANCE_DAMAGE_MULTIPLIER = 0.2
+local MIN_DANCE_DAMAGE_MULTIPLIER = 0.1
 local MAX_DANCE_DAMAGE_MULTIPLIER = 0.5
 local DANCE_DAMAGE_MULTIPLIER = 0
 local killCount = 0

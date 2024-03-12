@@ -793,7 +793,7 @@ function MolochMod:UpdateRope(e)
           if (isValidEnemy or isMovableTNT) and not data.HitBlacklist[GetPtrHash(entity)] then
             data.checkEntity = entity
             data.state = "hooked"
-            if entity:IsBoss() then
+            if entity:IsBoss() or entity.Mass >= 14 then
               data.checkEntity:GetData().isBoss = true
               data.state = "lunge"
             end
