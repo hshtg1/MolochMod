@@ -215,7 +215,7 @@ function MolochMod:ColorScythes()
     --color the scythes redder when higher damage multiplier
     lerpR = lib.Lerp(lerpR, 200, 0.001)
     lerpG = lib.Lerp(lerpG, 0, 0.1)
-    lerpB = lib.Lerp(lerpG, 0, 0.1)
+    lerpB = lib.Lerp(lerpB, 0, 0.1)
 end
 
 function MolochMod:UpdateColor()

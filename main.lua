@@ -561,8 +561,6 @@ function MolochMod:ResetScythesAnimation()
   end
 
   local scythes = playerData.scytheCache
-  local sprite = scythes:GetSprite()
-  sprite:Stop()
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_NEW_ROOM, MolochMod.ResetScythesAnimation)
