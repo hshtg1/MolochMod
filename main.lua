@@ -1034,6 +1034,7 @@ function MolochMod:UpdateRope(e)
       end
       e:Remove()
       playerData.hookCache = nil
+      player.CanFly = false
     end
   end
 end
