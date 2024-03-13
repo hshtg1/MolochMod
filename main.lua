@@ -414,9 +414,6 @@ function MolochMod:SwingScythe()
     return
   else
     playerData.playerHurt = false
-    if not sprite.isVisible then
-      MolochMod:HideScythe(true)
-    end
   end
   if sprite:IsPlaying("Swing Stage " .. tostring(glowStage)) == false and swingTimer <= 0
       and playerData.scytheCache.Visible == true then
