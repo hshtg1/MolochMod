@@ -118,6 +118,16 @@ local soulColor = lib.NewColor(1, 0, 0, 1)
 
 function MolochMod:OnEntityDeath(entity)
   if entity:ToPlayer() then
+    --ensure the scythes dissapear on any animation of the scythes
+    local player = entity:ToPlayer()
+    local scythe = player:GetData().scytheCache
+    local sprite = scythe:GetSprite()
+    sprite:Stop()
+    scythe:Remove()
+    if player.Child then
+      player.Child:Remove()
+      sfx:Stop(HOOK_SCRAPE)
+    end
     MolochMod:HideScythe(false)
     keepInvisible = true
   end
@@ -385,6 +395,9 @@ function MolochMod:SwingScythe()
     return
   else
     playerData.playerHurt = false
+    if not sprite.isVisible then
+      MolochMod:HideScythe(true)
+    end
   end
   if sprite:IsPlaying("Swing Stage " .. tostring(glowStage)) == false and swingTimer <= 0
       and playerData.scytheCache.Visible == true then
@@ -395,7 +408,7 @@ function MolochMod:SwingScythe()
       Input.IsActionPressed(ButtonAction.ACTION_SHOOTRIGHT, player.ControllerIndex) or
       Input.IsActionPressed(ButtonAction.ACTION_SHOOTUP, player.ControllerIndex) or
       Input.IsActionPressed(ButtonAction.ACTION_SHOOTDOWN, player.ControllerIndex)
-  if pressedThisFrame
+  if pressedThisFrame and not player:IsDead()
   then
     playerData.lastAimDirection = player:GetShootingInput()
     if (maxCharge + threshold > holdTimer) then
@@ -443,9 +456,12 @@ function MolochMod:SwingScythe()
         sfx:Play(SCYTHES_SWING, 1.3)
       end
     end
+  elseif player:IsDead() then
+    chargeWheel:Play(CHARGE_METER_ANIMATIONS.DISAPPEAR)
+    holdTimer = 0
   end
   --on key released
-  if pressedLastFrame and not pressedThisFrame then
+  if pressedLastFrame and not pressedThisFrame and not player:IsDead() then
     chargeWheel:Play(CHARGE_METER_ANIMATIONS.DISAPPEAR)
     if sprite:IsPlaying("Charging") then
       sprite:SetLastFrame()
@@ -834,7 +850,9 @@ function MolochMod:UpdateRope(e)
           if (isValidEnemy or isMovableTNT) and not data.HitBlacklist[GetPtrHash(entity)] then
             data.checkEntity = entity
             data.state = "hooked"
-            if (entity:IsBoss() or entity.Mass >= 20) and data.checkEntity:GetType() ~= EntityType.ENTITY_WALL_CREEP then
+            if (entity:IsBoss() or entity.Mass >= 20)
+                and data.checkEntity:GetType() ~= EntityType.ENTITY_WALL_CREEP
+                and data.checkEntity:GetType() ~= EntityType.ENTITY_SQUIRT then
               data.checkEntity:GetData().isBoss = true
               data.state = "lunge"
             end
