@@ -38,6 +38,7 @@ function MolochMod:EvaluateCache(player, cacheFlags)
     local scythes = MolochMod:GetScythes(player)
     local playerData = player:GetData()
 
+    --set data if not set already
     MolochMod.PERSISTENT_DATA.SCYTHES_SCALE = MolochMod.PERSISTENT_DATA.SCYTHES_SCALE or 1.0
     MolochMod.PERSISTENT_DATA.DANSE_SCALE = MolochMod.PERSISTENT_DATA.DANSE_SCALE or 1.0
     playerData.scythesScale = MolochMod.PERSISTENT_DATA.SCYTHES_SCALE
@@ -48,6 +49,7 @@ function MolochMod:EvaluateCache(player, cacheFlags)
             local size = player.SpriteScale
             local scale = playerData.scythesScale
             local playerData = player:GetData()
+            --size scaling condition
             if size.X * size.Y > scale ^ 2 then
                 playerData.scythesScale = playerData.scythesScale * 1.25
                 playerData.danseScale = playerData.danseScale * 1.25
@@ -56,6 +58,7 @@ function MolochMod:EvaluateCache(player, cacheFlags)
                 playerData.danseScale = playerData.danseScale * 0.8
             end
             if playerData.scythesScale ~= nil then
+                --setting and saving needed data
                 scythes.SpriteScale = Vector(playerData.scythesScale, playerData.scythesScale)
                 MolochMod.PERSISTENT_DATA.SCYTHES_SCALE = playerData.scythesScale
                 MolochMod.PERSISTENT_DATA.DANSE_SCALE = playerData.danseScale
@@ -66,6 +69,7 @@ function MolochMod:EvaluateCache(player, cacheFlags)
         if scythes ~= nil then
             local range = player.TearRange
             local playerData = player:GetData()
+            --range scaling algorithm
             if (range > playerBaseTearRange) then
                 playerData.scythesScale = math.min(
                     lib.Lerp(playerData.scythesScale, scythesMaxSize,
@@ -86,6 +90,7 @@ function MolochMod:EvaluateCache(player, cacheFlags)
                     danseMinSize)
             end
             if playerData.scythesScale ~= nil then
+                --setting and saving needed data
                 scythes.SpriteScale = Vector(playerData.scythesScale, playerData.scythesScale)
                 MolochMod.PERSISTENT_DATA.SCYTHES_SCALE = playerData.scythesScale
                 MolochMod.PERSISTENT_DATA.DANSE_SCALE = playerData.danseScale

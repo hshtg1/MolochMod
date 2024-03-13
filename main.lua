@@ -120,6 +120,9 @@ function MolochMod:OnEntityDeath(entity)
   if entity:ToPlayer() then
     --ensure the scythes dissapear on any animation of the scythes
     local player = entity:ToPlayer()
+    if player:GetPlayerType() ~= molochType then
+      return
+    end
     local scythe = player:GetData().scytheCache
     local sprite = scythe:GetSprite()
     sprite:Stop()
@@ -205,6 +208,7 @@ local function getPositionOffset(parent, scale)
   return offset
 end
 
+--updateing the soul trail
 function MolochMod:UpdateTrail(trail)
   local data = trail:GetData()
 
@@ -240,7 +244,7 @@ end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_UPDATE, MolochMod.EvaluateHideTimers)
 
---hides scythes whenever a player jumps or teleports
+--hides scythes whenever a player jumps or teleports or does a similar action
 function MolochMod:CheckForPlayerHidingScythes(player)
   local sprite = player:GetSprite()
   local anim = sprite:GetAnimation()
@@ -282,23 +286,31 @@ function MolochMod:ApplyScythePositioning(sprite, scythes, player)
   if player:HasCollectible(CollectibleType.COLLECTIBLE_PONY) or player:HasCollectible(CollectibleType.COLLECTIBLE_WHITE_PONY) then
     depth = -5
   end
+  --UP
   if (headDir == 1)
   then
     rot = 180
     offset = Vector(0, -15)
     depth = -5
     playerData.molochScythesLastCardinalDirection = Direction.UP
+    --LEFT
   elseif (headDir == 0)
   then
     rot = 90
     offset = Vector(-10, -15)
     depth = -5
     playerData.molochScythesLastCardinalDirection = Direction.LEFT
+    --RIGHT
   elseif (headDir == 2)
   then
     rot = -90
     offset = Vector(10, -15)
     depth = -5
+    -- make sure if the head direction is right on side charging
+    -- the sprite appears on top of the player
+    if playerData.isCharging then
+      depth = 5
+    end
     playerData.molochScythesLastCardinalDirection = Direction.RIGHT
   end
   if playerData.playerHurt then
@@ -340,6 +352,7 @@ function MolochMod:ApplyScythePositioning(sprite, scythes, player)
   end
 end
 
+--all sprite parameters interpolated
 function MolochMod:QuadraticInterpDirections(sprite, scythes, rot, offset, depth, lerpSpeed)
   sprite.Rotation = lib.QuadraticInterp(sprite.Rotation, rot, lerpSpeed)
   sprite.Offset = lib.QuadraticInterp(sprite.Offset, offset, lerpSpeed)
@@ -361,6 +374,7 @@ function MolochMod:NewChargeBarSprite()
   return sprite
 end
 
+--gets animation length to a certain animation listed in the anm2 file
 function MolochMod:GetAnimationLengthTo(sprite, num)
   num = num or 4
   if (num > 4) then return end
@@ -380,6 +394,11 @@ local maxCharge = MolochMod:GetAnimationLengthTo(chargeWheel, 2)
 local chargeSpeed = 10
 local threshold = 30
 local frameCount = 0
+
+local ChargeAnims = {
+  [false] = "Charging",
+  [true] = "Charging Side"
+}
 
 --handling swinging the scythe
 function MolochMod:SwingScythe()
@@ -419,12 +438,36 @@ function MolochMod:SwingScythe()
     --the ranged attack
     if holdTimer > threshold and player:HasInvincibility() == false
         and playerData.scytheCache.Visible == true then
-      if sprite:IsPlaying("Charging") == false then
-        sprite:Play("Charging", true)
+      local scythes = playerData.scytheCache
+      local scytheData = scythes:GetData()
+      --transitioning side animations smoothly using xor condition and set frame
+      -- if not ((not sprite:IsPlaying("Charging") and sprite:IsPlaying("Charging Side"))
+      --       or (sprite:IsPlaying("Charging") and not sprite:IsPlaying("Charging Side")))
+      --     and scytheData.lastChargeAnim then
+      --   local currentFrame = sprite:GetFrame()
+      --   local animToPlay = ChargeAnims[not scytheData.lastChargeAnim]
+      --   sprite:Play(animToPlay)
+      --   sprite:SetFrame(currentFrame)
+      -- end
+      if not sprite:IsPlaying("Charging") and not sprite:IsPlaying("Charging Side") then
+        if playerData.molochScythesLastCardinalDirection == Direction.LEFT
+        then
+          sprite:Play("Charging Side", true)
+          scytheData.lastChargeAnim = false
+        elseif playerData.molochScythesLastCardinalDirection == Direction.RIGHT then
+          sprite:Play("Charging Side", true)
+          scytheData.lastChargeAnim = false
+        else
+          sprite:Play("Charging", true)
+          scytheData.lastChargeAnim = true
+        end
+        --looping only the last frames
         if playerData.isCharging then
           sprite:SetFrame(8)
+        else
+          playerData.isCharging = true
         end
-        playerData.isCharging = true
+
         if (player:GetHeadDirection() ~= -1) then
           player:GetData().molochScythesState = 3
           MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
@@ -463,7 +506,7 @@ function MolochMod:SwingScythe()
   --on key released
   if pressedLastFrame and not pressedThisFrame and not player:IsDead() then
     chargeWheel:Play(CHARGE_METER_ANIMATIONS.DISAPPEAR)
-    if sprite:IsPlaying("Charging") then
+    if sprite:IsPlaying("Charging") or sprite:IsPlaying("Charging Side") then
       sprite:SetLastFrame()
     end
     playerData.isCharging = false
@@ -576,12 +619,14 @@ local ScythePickupCollisionBlacklist = {
   [PickupVariant.PICKUP_BED] = true,
   [PickupVariant.PICKUP_THROWABLEBOMB] = true,
 }
+--pushing the unpickable around
 local function ScythePickupPush(player, pickup)
   if pickup:GetSprite():GetAnimation() ~= "Collect" then
     pickup.Velocity = (pickup.Position - player.Position):Resized(5)
   end
 end
 
+--hiding pickups
 local function ScythesPickupSetHidden(pickup, hidden)
   if pickup.Variant == PickupVariant.PICKUP_TRINKET then
     pickup.Visible = not hidden
@@ -590,6 +635,7 @@ local function ScythesPickupSetHidden(pickup, hidden)
   end
 end
 
+--special pickup collisions
 function MolochMod:ScythesPickupCollision(player, entity)
   local pickup = entity:ToPickup()
   if not player or player.EntityCollisionClass == EntityCollisionClass.ENTCOLL_NONE
@@ -626,6 +672,7 @@ function MolochMod:ScythesPickupCollision(player, entity)
   end
 end
 
+--pickup cooldown logic
 function MolochMod:ScythesPickup(pickup)
   local player
   for i = 0, Game():GetNumPlayers() - 1 do
@@ -653,6 +700,7 @@ end
 MolochMod:AddCallback(ModCallbacks.MC_POST_PICKUP_UPDATE, MolochMod.ScythesPickup)
 
 --handle null capsule hitboxes and weapon rotation
+--MAIN MELEE CODE REPENTOGON REQUIRED!
 ---@param scythe EntityEffect
 function MolochMod:ScytheEffectUpdate(scythe)
   local player = Isaac.GetPlayer()
@@ -665,7 +713,7 @@ function MolochMod:ScytheEffectUpdate(scythe)
   end
 
   data.HitBlacklist = data.HitBlacklist or {}
-  if sprite:IsFinished("Charging") and not playerData.isCharging then
+  if (sprite:IsFinished("Charging") or sprite:IsFinished("Charging Side")) and not playerData.isCharging then
     sprite:Play("Idle Stage " .. tostring(glowStage), true)
     playerData.molochScythesState = 1
   end
@@ -742,6 +790,7 @@ end
 -- Connect the callback, only for our effect.
 MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, MolochMod.ScytheEffectUpdate, SCYTHE_EFFECT_ID)
 
+--gets entity segments (like chub and pin) to freeze all their segments simuntaneously
 function MolochMod:GetEntitySegments(ent)
   local segments = {}
   local lastParent = ent:GetLastParent()
@@ -756,6 +805,7 @@ end
 
 local nilvector = Vector.Zero
 
+--registers using the hook and spawns the flying scythe
 function MolochMod:UseHook(player)
   local aim = player:GetData().lastAimDirection
   local hook = Isaac.Spawn(1000, 1962, 50,
@@ -774,6 +824,8 @@ function MolochMod:UseHook(player)
   hook:Update()
 end
 
+--MAIN RANGED LOGIC
+--You only need Repentogon for null capsules, otherwise you dont have to use it
 function MolochMod:UpdateRope(e)
   local player = e.Parent:ToPlayer()
   local sprite = e:GetSprite()
@@ -984,6 +1036,7 @@ end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, MolochMod.UpdateRope, 1962)
 
+--move the handler with its parent
 MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, function(_, handler)
   if handler.SubType == 151 then
     if not handler.Parent or not handler.Parent:Exists() then
@@ -1016,6 +1069,7 @@ function MolochMod:ClearFreezeAfterDelay(enemy, delay)
   end
 end
 
+--used by dansemacabre.lua to set idle scythes glow based on killcount
 function MolochMod:SetGlow(glow, player)
   glowStage = glow
   local playerData = player:GetData()
@@ -1023,6 +1077,7 @@ function MolochMod:SetGlow(glow, player)
   sprite:Play("Idle Stage " .. tostring(glowStage), true)
 end
 
+--saving data
 function MolochMod:preGameExit()
   local jsonString = json.encode(MolochMod.PERSISTENT_DATA)
   MolochMod:SaveData(jsonString)

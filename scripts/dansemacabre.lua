@@ -24,6 +24,7 @@ local glowStage = 1
 local extraKillDanseScale = 0
 local maxDanseScale = 1.5
 
+--setting resetting some values
 local function onStart(_, continued)
     if continued then
         if MolochMod.PERSISTENT_DATA.GLOW_STAGE ~= nil then
@@ -39,6 +40,7 @@ local function onStart(_, continued)
 end
 MolochMod:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, onStart)
 
+--setting pocket item
 function MolochMod:InitializeDanseMacabre(player)
     if player:GetPlayerType() ~= molochType then
         return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
@@ -62,6 +64,7 @@ end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_INIT, MolochMod.InitializeDanseMacabre)
 
+--using danse and spawning the effect
 function MolochMod:UseDanseMacabre(collectibleType, rng, player, useFlags, activeSlot, _)
     if game:IsPauseMenuOpen() then
         return
@@ -119,7 +122,7 @@ function MolochMod:DanceEffectUpdate(dance)
 
         -- Search for all enemies within the capsule.
         for _, entity in ipairs(Isaac.FindInCapsule(capsule, EntityPartition.ENEMY)) do
-            -- Make sure it can be hurt.
+            -- Make sure it can be hurt and its a valid entity
             local isValidEnemy = entity:IsVulnerableEnemy() and entity:IsActiveEnemy()
             local isFireplace = (entity:GetType() == EntityType.ENTITY_FIREPLACE)
             local isEntityPoop = (entity:GetType() == EntityType.ENTITY_POOP)
@@ -153,10 +156,12 @@ end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, MolochMod.DanceEffectUpdate, DANCE_EFFECT_ID)
 
+--adds extra range to danse with gaining kills
 function MolochMod:AddRangeDanse(num)
     extraKillDanseScale = extraKillDanseScale + 0.02 * num
 end
 
+--charging danse with kills and applying glow stages
 function MolochMod:ChargeDanse(ent)
     local player = Isaac.GetPlayer()
     local playerData = player:GetData()
@@ -232,6 +237,7 @@ end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_UPDATE, MolochMod.UpdateColor)
 
+--fixes going through doors while danse is active
 function MolochMod:ResetDanse()
     for i = 0, Game():GetNumPlayers() - 1 do
         local player = Isaac.GetPlayer(i)
