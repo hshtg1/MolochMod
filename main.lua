@@ -71,6 +71,7 @@ function MolochMod:InitializePlayerData(player, scythe)
   playerData.scytheCache = scythe
   playerData.knockedBack = false
   playerData.playerHurt = false
+  playerData.hookCache = nil
 end
 
 function MolochMod:GetScythes(player)
@@ -186,7 +187,7 @@ function MolochMod:UpdateSouls(effect)
     originalVec = originalVec:Resized(30)
   end
   local targetVec = originalVec:Rotated(t)
-  effect.Velocity = lib.Lerp(effect.Velocity, targetVec, 0.5)
+  effect.Velocity = lib.Lerp(effect.Velocity, targetVec, 0.7)
   if effect.Position:Distance(player.Position) < 10
       and not effect:GetSprite():IsPlaying("Collect")
   then
@@ -419,6 +420,8 @@ function MolochMod:SwingScythe()
       and playerData.scytheCache.Visible == true then
     MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
   end
+  --if hook exists than player cant do any actions
+  if playerData.hookCache then return end
   --make sure the charging animation doesnt play over and over
   local pressedThisFrame = Input.IsActionPressed(ButtonAction.ACTION_SHOOTLEFT, player.ControllerIndex) or
       Input.IsActionPressed(ButtonAction.ACTION_SHOOTRIGHT, player.ControllerIndex) or
@@ -510,7 +513,6 @@ function MolochMod:SwingScythe()
     if holdTimer - threshold + 5 >= maxCharge then
       --throw hook
       MolochMod:UseHook(player)
-      sfx:Play(ROPE_SWOOSH, 1.3, 0, false, 0.8)
     end
     holdTimer = 0
   end
@@ -550,7 +552,7 @@ end
 
 MolochMod:AddCallback(ModCallbacks.MC_ENTITY_TAKE_DMG, MolochMod.AfterHitOnEnemy)
 
-function MolochMod:ResetScythesAnimation()
+function MolochMod:ResetHook()
   local playerData
   for i = 0, Game():GetNumPlayers() - 1 do
     local player = Isaac.GetPlayer(i)
@@ -560,10 +562,11 @@ function MolochMod:ResetScythesAnimation()
     end
   end
 
-  local scythes = playerData.scytheCache
+  playerData.hookCache = nil
+  sfx:Stop(HOOK_SCRAPE)
 end
 
-MolochMod:AddCallback(ModCallbacks.MC_POST_NEW_ROOM, MolochMod.ResetScythesAnimation)
+MolochMod:AddCallback(ModCallbacks.MC_POST_NEW_ROOM, MolochMod.ResetHook)
 
 local InputDirections = {}
 InputDirections[ButtonAction.ACTION_SHOOTLEFT] = Direction.LEFT
@@ -803,6 +806,8 @@ local nilvector = Vector.Zero
 --registers using the hook and spawns the flying scythe
 function MolochMod:UseHook(player)
   local aim = player:GetData().lastAimDirection
+  local playerData = player:GetData()
+  sfx:Play(ROPE_SWOOSH, 1.3, 0, false, 0.8)
   local hook = Isaac.Spawn(1000, 1962, 50,
     player.Position - player.Velocity,
     aim * 15 * player.ShotSpeed * holdTimer / 100,
@@ -816,6 +821,7 @@ function MolochMod:UseHook(player)
   hook.DepthOffset = 10
   hook:GetData().LaunchVel = hook.Velocity
   hook:GetData().HasHitGrid = false
+  playerData.hookCache = hook
   hook:Update()
 end
 
@@ -825,6 +831,7 @@ function MolochMod:UpdateRope(e)
   local player = e.Parent:ToPlayer()
   local sprite = e:GetSprite()
   local data = e:GetData()
+  local playerData = player:GetData()
 
   --e.SpriteOffset = Vector(0, -15)
   e.RenderZOffset = -300
@@ -933,6 +940,7 @@ function MolochMod:UpdateRope(e)
       end
       e:Remove()
       data.checkEntity = nil
+      playerData.hookCache = nil
     end
   elseif data.state == "hooked" then
     if data.checkEntity then
@@ -964,7 +972,6 @@ function MolochMod:UpdateRope(e)
       end
       player.Velocity = lib.Lerp(player.Velocity, targetVec, 0.5)
       if e:GetData().checkEntity and e:GetData().checkEntity:Exists() then
-        local enemy = e:GetData().checkEntity
         player:SetMinDamageCooldown(30)
 
         local enemy = e:GetData().checkEntity
@@ -980,6 +987,7 @@ function MolochMod:UpdateRope(e)
           end
           e:Remove()
           player.CanFly = false
+          playerData.hookCache = nil
         end
       end
     end
@@ -1025,6 +1033,7 @@ function MolochMod:UpdateRope(e)
         e.Child:Remove()
       end
       e:Remove()
+      playerData.hookCache = nil
     end
   end
 end
