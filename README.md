@@ -5,7 +5,7 @@ The Moloch Mod is a mod for The Binding of Isaac: Rebirth (Repentance) built on 
 
 ![Moloch Character Art](resources/gfx/ui/stage/playerportrait_moloch.png)
 
-<img src="https://imgflip.com/embed/8j9wny" width="40" height="40" />
+![Moloch Demo Gameplay](8j9wny.gif)
 
 ## Authors: 
 - Designer - deadan5 (Steam)
