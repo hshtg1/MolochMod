@@ -139,7 +139,7 @@ function MolochMod:OnEntityDeath(entity)
     return
   end
   if entity:ToNPC() and GetPtrHash(entity) == GetPtrHash(lastEnemyHit) then
-    local soul = Isaac.Spawn(1000, 179, 0,
+    local soul = Isaac.Spawn(1000, 179, 1,
       entity.Position - entity.Velocity,
       Vector.Zero,
       entity)
@@ -156,16 +156,19 @@ local t = 0
 function MolochMod:SoulInit(effect)
   local length = 0.2
   local scale = 1
-  local trail = Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SPRITE_TRAIL, 0,
-    effect.Position + effect.PositionOffset, Vector.Zero, effect):ToEffect()
-  trail:FollowParent(effect)
-  trail.Color = soulColor
-  trail.MinRadius = length
-  trail.SpriteScale = Vector.One * scale
+  --make sure its a custom soul not the urn of souls one
+  if effect.SubType == 1 then
+    local trail = Isaac.Spawn(EntityType.ENTITY_EFFECT, EffectVariant.SPRITE_TRAIL, 0,
+      effect.Position + effect.PositionOffset, Vector.Zero, effect):ToEffect()
+    trail:FollowParent(effect)
+    trail.Color = soulColor
+    trail.MinRadius = length
+    trail.SpriteScale = Vector.One * scale
 
-  trail:Update()
+    trail:Update()
 
-  trail:GetData().parentProj = effect
+    trail:GetData().parentProj = effect
+  end
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_INIT, MolochMod.SoulInit, 179)
@@ -178,25 +181,28 @@ function MolochMod:UpdateSouls(effect)
       return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
     end
   end
-  local a = player.Position + player.Velocity
-  local b = -effect.Position
-  local orbitSpeed = 0.9
-  t = lib.Lerp(t, 100 * math.pi, orbitSpeed)
-  local originalVec = a + b
-  if originalVec:Length() > 30 then
-    originalVec = originalVec:Resized(30)
-  end
-  local targetVec = originalVec:Rotated(t)
-  effect.Velocity = lib.Lerp(effect.Velocity, targetVec, 0.7)
-  if effect.Position:Distance(player.Position) < 10
-      and not effect:GetSprite():IsPlaying("Collect")
-  then
-    effect:GetSprite():Play("Collect", true)
-    sfx:Play(SoundEffect.SOUND_SOUL_PICKUP, 1, 20)
-  end
-  if effect:GetSprite():IsFinished("Collect") then
-    effect:Remove()
-    t = 0
+  --make sure its a custom soul not the urn of souls one
+  if effect.SubType == 1 then
+    local a = player.Position + player.Velocity
+    local b = -effect.Position
+    local orbitSpeed = 0.9
+    t = lib.Lerp(t, 100 * math.pi, orbitSpeed)
+    local originalVec = a + b
+    if originalVec:Length() > 30 then
+      originalVec = originalVec:Resized(30)
+    end
+    local targetVec = originalVec:Rotated(t)
+    effect.Velocity = lib.Lerp(effect.Velocity, targetVec, 0.7)
+    if effect.Position:Distance(player.Position) < 10
+        and not effect:GetSprite():IsPlaying("Collect")
+    then
+      effect:GetSprite():Play("Collect", true)
+      sfx:Play(SoundEffect.SOUND_SOUL_PICKUP, 1, 20)
+    end
+    if effect:GetSprite():IsFinished("Collect") then
+      effect:Remove()
+      t = 0
+    end
   end
 end
 
