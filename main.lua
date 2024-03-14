@@ -98,7 +98,7 @@ function MolochMod:HideScythe(isVisible, keep)
   end
   local playerData = player:GetData()
   local effect = playerData.scytheCache
-  if (isVisible) then
+  if isVisible then
     playerData.molochScythesState = 1
   else
     playerData.molochScythesState = 0
@@ -106,13 +106,6 @@ function MolochMod:HideScythe(isVisible, keep)
 
   effect.Visible = isVisible
 end
-
-function MolochMod:ScythesAppearAfterNewLevel()
-  MolochMod:HideScythe(false)
-  appearTimer = 1
-end
-
-MolochMod:AddCallback(ModCallbacks.MC_POST_NEW_LEVEL, MolochMod.ScythesAppearAfterNewLevel)
 
 local lastEnemyHit
 local soulColor = lib.NewColor(1, 0, 0, 1)
@@ -269,10 +262,17 @@ function MolochMod:CheckForPlayerHidingScythes(player)
       anim == "PickupWalkRight" or
       anim == "UseItem" or
       anim == "Sad" or
-      anim == "Happy"
+      anim == "Happy" or
+      anim == "Appear"
   then
     MolochMod:HideScythe(false)
     appearTimer = sprite:GetCurrentAnimationData():GetLength() - 0.2
+  end
+  local tempEffects = player:GetEffects()
+  --hide the scythes upon having the gamekid effect
+  if tempEffects:HasCollectibleEffect(CollectibleType.COLLECTIBLE_GAMEKID) then
+    MolochMod:HideScythe(false)
+    appearTimer = 5
   end
 end
 
@@ -416,16 +416,19 @@ function MolochMod:SwingScythe()
   local playerData = player:GetData()
   local sprite = playerData.scytheCache:GetSprite()
   swingTimer = swingTimer - 1 / 60
-  if player:GetDamageCooldown() > 85 then
-    playerData.playerHurt = true
-    return
-  else
-    playerData.playerHurt = false
-  end
+  --a misconception about GetDamageCooldown
+  -- if player:GetDamageCooldown() > 85 then
+  --     playerData.playerHurt = true
+  --     return
+  -- else
+  --     playerData.playerHurt = false
+  -- end
+
   if sprite:IsPlaying("Swing Stage " .. tostring(glowStage)) == false and swingTimer <= 0
       and playerData.scytheCache.Visible == true then
     MolochMod:ApplyScythePositioning(sprite, playerData.scytheCache, player)
   end
+
   --if hook exists than player cant do any actions
   if playerData.hookCache then return end
   --make sure the charging animation doesnt play over and over
@@ -442,8 +445,7 @@ function MolochMod:SwingScythe()
       holdTimer = holdTimer + chargeIncrement
     end
     --the ranged attack
-    if holdTimer > threshold and player:HasInvincibility() == false
-        and playerData.scytheCache.Visible == true then
+    if holdTimer > threshold and playerData.scytheCache.Visible == true then
       local scythes = playerData.scytheCache
       local scytheData = scythes:GetData()
       --transitioning side animations smoothly using xor condition and set frame
@@ -493,7 +495,7 @@ function MolochMod:SwingScythe()
     elseif holdTimer <= threshold then
       --add a delay between swings
       --the melee attack
-      if sprite:IsPlaying("Swing Stage " .. tostring(glowStage)) == false and swingTimer <= 0 and player:HasInvincibility() == false
+      if sprite:IsPlaying("Swing Stage " .. tostring(glowStage)) == false and swingTimer <= 0
           and playerData.scytheCache.Visible == true and not pressedLastFrame then
         if (player:GetHeadDirection() ~= -1) then
           player:GetData().molochScythesState = 2
