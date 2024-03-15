@@ -25,7 +25,8 @@ local HOOK_SPARKLES = Isaac.GetEntityVariantByName("Hook Sparkles")
 local SCYTHE_EFFECT_ID = Isaac.GetEntityVariantByName("Scythe Swing")
 local SCYTHES_SWING = Isaac.GetSoundIdByName("Scythes Swing")
 DAMAGE_MULTIPLIER = 2.5
-local scytheOffset = Vector(-5, 0)
+local SCYTHES_LERP_SPEED = 0.3
+local SCYTHE_REFLECTION_OFFSET = Vector(10, 0)
 local maxSwingTimer = 0.5
 local swingTimer = 0
 local appearTimer = 0
@@ -287,7 +288,6 @@ function MolochMod:ApplyScythePositioning(sprite, scythes, player)
   local offset = Vector(0, 0)
 
   local depth = 1
-  local lerpSpeed = 0.3
   local playerData = player:GetData()
   playerData.molochScythesLastCardinalDirection = Direction.DOWN
   if player:HasCollectible(CollectibleType.COLLECTIBLE_PONY) or player:HasCollectible(CollectibleType.COLLECTIBLE_WHITE_PONY) then
@@ -351,11 +351,13 @@ function MolochMod:ApplyScythePositioning(sprite, scythes, player)
     sprite.Rotation = sprite.Rotation + 360
   end
   if playerData.molochScythesState == 1 or playerData.molochScythesState == 3 then
-    MolochMod:QuadraticInterpDirections(sprite, scythes, rot, offset, depth, lerpSpeed)
+    MolochMod:QuadraticInterpDirections(sprite, scythes, rot, offset, depth, SCYTHES_LERP_SPEED)
+    return sprite.Rotation
   elseif (playerData.molochScythesState == 2) then
     sprite.Rotation = rot
     sprite.Offset = offset
     scythes.DepthOffset = depth
+    return sprite.Rotation
   end
 end
 
@@ -536,6 +538,22 @@ function MolochMod:SwingScythe()
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_RENDER, MolochMod.SwingScythe)
+
+local isRerender = false
+
+function MolochMod:FixScytheWaterReflection(effect, offset)
+  local room = Game():GetRoom()
+  local renderMode = room:GetRenderMode()
+  if renderMode == RenderMode.RENDER_WATER_REFLECT and not isRerender then
+    isRerender = true
+    effect:Render(offset)
+    return false
+  end
+  if isRerender then isRerender = false end
+end
+
+--thanks Repentogon devs!
+MolochMod:AddCallback(ModCallbacks.MC_PRE_EFFECT_RENDER, MolochMod.FixScytheWaterReflection, 300)
 
 --knockback after a hit on enemy that doesnt kill it
 function MolochMod:AfterHitOnEnemy(enemy, amount, damageFlags, src, countdown)
