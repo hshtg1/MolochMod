@@ -94,7 +94,13 @@ end
 function MolochMod:HideScythe(isVisible, keep)
   local keep = keep or false
   keepInvisible = keep
-  local player = Isaac.GetPlayer()
+  local player
+  for i = 0, Game():GetNumPlayers() - 1 do
+    player = Isaac.GetPlayer(i)
+    if player:GetPlayerType() ~= molochType or not player then
+      return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+    end
+  end
   if player:GetPlayerType() ~= molochType then
     return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
   end
@@ -844,6 +850,7 @@ local playerGridCollision = nil
 
 --registers using the hook and spawns the flying scythe
 function MolochMod:UseHook(player)
+  --store players grid collision class
   playerGridCollision = player.GridCollisionClass
   local aim = player:GetData().lastAimDirection
   local playerData = player:GetData()
@@ -990,6 +997,7 @@ function MolochMod:UpdateRope(e)
       end
     end
   elseif data.state == "lunge" then
+    --set players collision class to only walls making him able to jump over any grid entity while lunging
     player.GridCollisionClass = EntityGridCollisionClass.GRIDCOLL_WALLS
     if e:GetData().checkEntity and e:GetData().checkEntity:Exists() then
       local enemy = e:GetData().checkEntity
@@ -1025,6 +1033,7 @@ function MolochMod:UpdateRope(e)
             e.Child:Remove()
           end
           e:Remove()
+          --make sure to change back to original collision class of player
           player.GridCollisionClass = playerGridCollision
           playerData.hookCache = nil
         end
@@ -1096,14 +1105,6 @@ MolochMod:AddCallback(ModCallbacks.MC_PRE_NPC_UPDATE, function(_, npc)
     return false
   end
 end, EntityType.ENTITY_EVIS)
-
--- function MolochMod:IgnorePoops(entity, collider, low)
---   if entity.Variant == 1962 then
---     return true
---   end
--- end
-
--- MolochMod:AddCallback(ModCallbacks.MC_PRE_NPC_COLLISION, MolochMod.IgnorePoops, 1000)
 
 function MolochMod:ClearFreezeAfterDelay(enemy, delay)
   delayTime = delay

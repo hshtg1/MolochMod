@@ -10,7 +10,7 @@ local DANSE_SPIN = Isaac.GetSoundIdByName("Danse Macabre")
 
 --constants
 local MIN_DANCE_DAMAGE_MULTIPLIER = 0.1
-local MAX_DANCE_DAMAGE_MULTIPLIER = 0.5
+local MAX_DANCE_DAMAGE_MULTIPLIER = 0.4
 local DANCE_DAMAGE_MULTIPLIER = 0
 local killCount = 0
 local lerpSpeed = 0.5
@@ -163,7 +163,13 @@ end
 
 --charging danse with kills and applying glow stages
 function MolochMod:ChargeDanse(ent)
-    local player = Isaac.GetPlayer()
+    local player
+    for i = 0, Game():GetNumPlayers() - 1 do
+        player = Isaac.GetPlayer(i)
+        if player:GetPlayerType() ~= molochType or not player then
+            return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+        end
+    end
     local playerData = player:GetData()
     if player:GetPlayerType() ~= molochType then
         return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
@@ -185,9 +191,10 @@ function MolochMod:ChargeDanse(ent)
 
         print("KillCount:" .. tostring(killCount))
         if (killCount % 5 == 0) then
-            DANCE_DAMAGE_MULTIPLIER = lib.Lerp(DANCE_DAMAGE_MULTIPLIER, MAX_DANCE_DAMAGE_MULTIPLIER, lerpSpeed)
+            DANCE_DAMAGE_MULTIPLIER = DANCE_DAMAGE_MULTIPLIER +
+                (MAX_DANCE_DAMAGE_MULTIPLIER - MIN_DANCE_DAMAGE_MULTIPLIER) / 3
             --adding a glow to the player with kills
-            if glowStage < 3 then
+            if glowStage < 4 then
                 glowStage = glowStage + 1
                 MolochMod.PERSISTENT_DATA.GLOW_STAGE = glowStage
             end
@@ -218,24 +225,44 @@ function MolochMod:ColorScythes()
     lerpB = lib.Lerp(lerpB, 0, 0.1)
 end
 
-function MolochMod:UpdateColor()
-    local player = Isaac.GetPlayer()
-    if (player:GetPlayerType() ~= molochType) then return end
-    local playerData = player:GetData()
-    local scythes = playerData.scytheCache
-    local sprite = scythes:GetSprite()
-    --scythes:SetColor(lib.NewColor(lerpR, lerpG, lerpB), 15, 1, false, false)
-    -- if glow ~= nil then
-    --     if glowStage ~= 0 then
-    --         glow.Visible = true
-    --         glow:GetSprite():Play("Stage " .. tostring(glowStage))
-    --     elseif glowStage == 0 then
-    --         glow.Visible = false
-    --     end
-    -- end
+local danseSprite
+--render danse macabre item stages
+function MolochMod:RenderStages()
+    local renderOffset = Vector(445, 247)
+    local player = nil
+    for i = 0, Game():GetNumPlayers() - 1 do
+        player = Isaac.GetPlayer(i)
+        if player:GetPlayerType() ~= molochType then
+            return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+        end
+    end
+    if player ~= nil then
+        local slot = 1
+        local item = player:GetPocketItem(ActiveSlot.SLOT_PRIMARY)
+        if item:GetType() ~= 2 then
+            item = player:GetPocketItem(ActiveSlot.SLOT_SECONDARY)
+            slot = 2
+        end
+        if item and item:GetType() == 2 then
+            if danseSprite then
+                danseSprite.Scale = Vector(1, 1)
+                if slot == 2 then
+                    renderOffset = renderOffset + Vector(9, -12)
+                    danseSprite.Scale = Vector(0.5, 0.5)
+                end
+                danseSprite:Render(renderOffset, Vector(0, 0), Vector(0, 0))
+                danseSprite:Play("Stage " .. tostring(glowStage))
+                danseSprite:Update()
+            else
+                --sprite
+                danseSprite = Sprite()
+                danseSprite:Load("gfx/danse_stages.anm2", true)
+            end
+        end
+    end
 end
 
-MolochMod:AddCallback(ModCallbacks.MC_POST_UPDATE, MolochMod.UpdateColor)
+MolochMod:AddCallback(ModCallbacks.MC_POST_RENDER, MolochMod.RenderStages)
 
 --fixes going through doors while danse is active
 function MolochMod:ResetDanse()
