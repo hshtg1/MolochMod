@@ -73,6 +73,7 @@ function MolochMod:InitializePlayerData(player, scythe)
   playerData.knockedBack = false
   playerData.playerHurt = false
   playerData.hookCache = nil
+  playerData.couldFly = false
 end
 
 function MolochMod:GetScythes(player)
@@ -827,10 +828,23 @@ function MolochMod:GetEntitySegments(ent)
   return segments
 end
 
+--MAIN RANGED LOGIC
+-- function MolochMod:SetFlying(player, cacheFlags)
+--   if cacheFlags == cacheFlags & CacheFlag.CACHE_FLYING then
+--     player:GetData().couldFly = true
+--   else
+--     player:GetData().couldFly = false
+--   end
+-- end
+
+-- MolochMod:AddCallback(ModCallbacks.MC_EVALUATE_CACHE, MolochMod.SetFlying)
+
 local nilvector = Vector.Zero
+local playerGridCollision = nil
 
 --registers using the hook and spawns the flying scythe
 function MolochMod:UseHook(player)
+  playerGridCollision = player.GridCollisionClass
   local aim = player:GetData().lastAimDirection
   local playerData = player:GetData()
   sfx:Play(ROPE_SWOOSH, 1.3, 0, false, 0.8)
@@ -851,7 +865,6 @@ function MolochMod:UseHook(player)
   hook:Update()
 end
 
---MAIN RANGED LOGIC
 --You only need Repentogon for null capsules, otherwise you dont have to use it
 function MolochMod:UpdateRope(e)
   local player = e.Parent:ToPlayer()
@@ -977,7 +990,7 @@ function MolochMod:UpdateRope(e)
       end
     end
   elseif data.state == "lunge" then
-    player.CanFly = true
+    player.GridCollisionClass = EntityGridCollisionClass.GRIDCOLL_WALLS
     if e:GetData().checkEntity and e:GetData().checkEntity:Exists() then
       local enemy = e:GetData().checkEntity
       local segments = MolochMod:GetEntitySegments(enemy)
@@ -1012,7 +1025,7 @@ function MolochMod:UpdateRope(e)
             e.Child:Remove()
           end
           e:Remove()
-          player.CanFly = false
+          player.GridCollisionClass = playerGridCollision
           playerData.hookCache = nil
         end
       end
@@ -1060,7 +1073,6 @@ function MolochMod:UpdateRope(e)
       end
       e:Remove()
       playerData.hookCache = nil
-      player.CanFly = false
     end
   end
 end
