@@ -13,7 +13,13 @@ local danseMinSize = 0.5
 local danseMaxSize = 1.5
 
 local function onStart(_, isContinued)
-    local player = Isaac.GetPlayer()
+    local player
+    for i = 0, Game():GetNumPlayers() - 1 do
+        player = Isaac.GetPlayer(i)
+        if player:GetPlayerType() ~= molochType or not player then
+            return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+        end
+    end
     if isContinued then
         player:AddCacheFlags(CacheFlag.CACHE_SIZE)
         player:AddCacheFlags(CacheFlag.CACHE_RANGE)

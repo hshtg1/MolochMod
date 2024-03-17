@@ -237,9 +237,12 @@ MolochMod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, MolochMod.UpdateSouls,
 local delayTime = 0
 
 function MolochMod:EvaluateHideTimers()
-  local player = Isaac.GetPlayer()
-  if player:GetPlayerType() ~= molochType then
-    return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+  local player
+  for i = 0, Game():GetNumPlayers() - 1 do
+    player = Isaac.GetPlayer(i)
+    if player:GetPlayerType() ~= molochType or not player then
+      return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+    end
   end
   local playerData = player:GetData()
   local effect = playerData.scytheCache
@@ -418,9 +421,12 @@ local ChargeAnims = {
 
 --handling swinging the scythe
 function MolochMod:SwingScythe()
-  local player = Isaac.GetPlayer()
-  if player:GetPlayerType() ~= molochType or game:IsPauseMenuOpen() then
-    return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+  local player
+  for i = 0, Game():GetNumPlayers() - 1 do
+    player = Isaac.GetPlayer(i)
+    if player:GetPlayerType() ~= molochType or not player then
+      return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+    end
   end
   local playerData = player:GetData()
   local sprite = playerData.scytheCache:GetSprite()
@@ -734,7 +740,13 @@ MolochMod:AddCallback(ModCallbacks.MC_POST_PICKUP_UPDATE, MolochMod.ScythesPicku
 --MAIN MELEE CODE REPENTOGON REQUIRED!
 ---@param scythe EntityEffect
 function MolochMod:ScytheEffectUpdate(scythe)
-  local player = Isaac.GetPlayer()
+  local player
+  for i = 0, Game():GetNumPlayers() - 1 do
+    player = Isaac.GetPlayer(i)
+    if player:GetPlayerType() ~= molochType or not player then
+      return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+    end
+  end
   local playerData = player:GetData()
   local scytheCache = playerData.scytheCache
   local sprite = scytheCache:GetSprite()
