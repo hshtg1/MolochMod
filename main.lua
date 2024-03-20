@@ -1032,13 +1032,6 @@ function MolochMod:UpdateRope(e)
       player.Velocity = lib.Lerp(player.Velocity, targetVec, 0.5)
       if e:GetData().checkEntity and e:GetData().checkEntity:Exists() then
         player:SetMinDamageCooldown(30)
-
-        local enemy = e:GetData().checkEntity
-        local targetVec = ((player.Position + player.Velocity) - enemy.Position)
-        if targetVec:Length() > 30 then
-          targetVec = targetVec:Resized(30)
-        end
-        e.Velocity = lib.Lerp(enemy.Velocity, targetVec, 0.4)
         MolochMod:ClearFreezeAfterDelay(enemy, 60)
         if e.Position:Distance(player.Position) < enemy.Size then
           if e.Child then
@@ -1083,11 +1076,23 @@ function MolochMod:UpdateRope(e)
         local enemy = e:GetData().checkEntity
         enemy:AddEntityFlags(EntityFlag.FLAG_FREEZE)
         player:SetMinDamageCooldown(30)
-        enemy.Position = e.Position
+        --radius check to stop enemy in radius in order to prevent the enemy moving behind the player
+        local enemiesInRadius = Isaac.FindInRadius(player.Position, 40, EntityPartition.ENEMY)
+        if enemiesInRadius ~= nil then
+          local pulledEnemy = false
+          for index, enem in ipairs(enemiesInRadius) do
+            if GetPtrHash(enem) == GetPtrHash(enemy) then
+              pulledEnemy = true
+            end
+          end
+          if not pulledEnemy then
+            enemy.Position = e.Position
+          end
+        end
         MolochMod:ClearFreezeAfterDelay(enemy, 60)
       end
     end
-    if e.Position:Distance(player.Position) < 10 then
+    if e.Position:Distance(player.Position) < 15 then
       sfx:Stop(HOOK_SCRAPE)
       if e.Child then
         e.Child:Remove()
