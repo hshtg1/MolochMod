@@ -756,7 +756,12 @@ function MolochMod:ScytheEffectUpdate(scythe)
   end
 
   data.HitBlacklist = data.HitBlacklist or {}
-  if (sprite:IsFinished("Charging") or sprite:IsFinished("Charging Side")) and not playerData.isCharging then
+  if (sprite:IsFinished("Charging") or sprite:IsFinished("Charging Side"))
+      and not playerData.isCharging then
+    sprite:Play("Idle Stage " .. tostring(glowStage), true)
+    playerData.molochScythesState = 1
+  end
+  if sprite:IsFinished("Idle Thrown") and not playerData.isThrown then
     sprite:Play("Idle Stage " .. tostring(glowStage), true)
     playerData.molochScythesState = 1
   end
@@ -847,18 +852,10 @@ function MolochMod:GetEntitySegments(ent)
 end
 
 --MAIN RANGED LOGIC
--- function MolochMod:SetFlying(player, cacheFlags)
---   if cacheFlags == cacheFlags & CacheFlag.CACHE_FLYING then
---     player:GetData().couldFly = true
---   else
---     player:GetData().couldFly = false
---   end
--- end
-
--- MolochMod:AddCallback(ModCallbacks.MC_EVALUATE_CACHE, MolochMod.SetFlying)
 
 local nilvector = Vector.Zero
 local playerGridCollision = nil
+local HAND_OFFSET = Vector(20, 6)
 
 --registers using the hook and spawns the flying scythe
 function MolochMod:UseHook(player)
@@ -866,9 +863,12 @@ function MolochMod:UseHook(player)
   playerGridCollision = player.GridCollisionClass
   local aim = player:GetData().lastAimDirection
   local playerData = player:GetData()
+  local sprite = playerData.scytheCache:GetSprite()
+  sprite:Play("Idle Thrown", true)
+  playerData.isThrown = true
   sfx:Play(ROPE_SWOOSH, 1.3, 0, false, 0.8)
   local hook = Isaac.Spawn(1000, 1962, 50,
-    player.Position - player.Velocity,
+    player.Position - player.Velocity + HAND_OFFSET:Rotated(aim:GetAngleDegrees()),
     aim * 15 * player.ShotSpeed * holdTimer / 100,
     player)
   hook.GridCollisionClass = EntityGridCollisionClass.GRIDCOLL_NOPITS
@@ -890,6 +890,7 @@ function MolochMod:UpdateRope(e)
   local sprite = e:GetSprite()
   local data = e:GetData()
   local playerData = player:GetData()
+  local aim = player:GetData().lastAimDirection
 
   --e.SpriteOffset = Vector(0, -15)
   e.RenderZOffset = -300
@@ -898,6 +899,9 @@ function MolochMod:UpdateRope(e)
 
   if not e.Child then
     local handler = Isaac.Spawn(1000, 1749, 151, e.Position, nilvector, e):ToEffect()
+    local leftHand = Isaac.Spawn(1000, 1749, 152,
+      player.Position - player.Velocity + HAND_OFFSET:Rotated(aim:GetAngleDegrees()), nilvector, e):ToEffect()
+    leftHand:FollowParent(player)
     handler.Parent = e
     handler.Visible = false
     handler:Update()
@@ -911,7 +915,7 @@ function MolochMod:UpdateRope(e)
     end
 
     rope.Parent = handler
-    rope.Target = player
+    rope.Target = leftHand
 
     rope:AddEntityFlags(EntityFlag.FLAG_NO_STATUS_EFFECTS | EntityFlag.FLAG_NO_TARGET | EntityFlag.FLAG_NO_KNOCKBACK |
       EntityFlag.FLAG_NO_PHYSICS_KNOCKBACK)
@@ -999,6 +1003,7 @@ function MolochMod:UpdateRope(e)
       e:Remove()
       data.checkEntity = nil
       playerData.hookCache = nil
+      playerData.isThrown = false
     end
   elseif data.state == "hooked" then
     if data.checkEntity then
@@ -1041,6 +1046,7 @@ function MolochMod:UpdateRope(e)
           --make sure to change back to original collision class of player
           player.GridCollisionClass = playerGridCollision
           playerData.hookCache = nil
+          playerData.isThrown = false
         end
       end
     end
@@ -1080,7 +1086,7 @@ function MolochMod:UpdateRope(e)
         local enemiesInRadius = Isaac.FindInRadius(player.Position, 40, EntityPartition.ENEMY)
         if enemiesInRadius ~= nil then
           local pulledEnemy = false
-          for index, enem in ipairs(enemiesInRadius) do
+          for _, enem in ipairs(enemiesInRadius) do
             if GetPtrHash(enem) == GetPtrHash(enemy) then
               pulledEnemy = true
             end
@@ -1099,6 +1105,7 @@ function MolochMod:UpdateRope(e)
       end
       e:Remove()
       playerData.hookCache = nil
+      playerData.isThrown = false
     end
   end
 end
