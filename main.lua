@@ -602,6 +602,7 @@ function MolochMod:ResetHook()
   end
 
   playerData.hookCache = nil
+  playerData.isThrown = false
   sfx:Stop(HOOK_SCRAPE)
 end
 
@@ -899,9 +900,6 @@ function MolochMod:UpdateRope(e)
 
   if not e.Child then
     local handler = Isaac.Spawn(1000, 1749, 151, e.Position, nilvector, e):ToEffect()
-    local leftHand = Isaac.Spawn(1000, 1749, 152,
-      player.Position - player.Velocity + HAND_OFFSET:Rotated(aim:GetAngleDegrees()), nilvector, e):ToEffect()
-    leftHand:FollowParent(player)
     handler.Parent = e
     handler.Visible = false
     handler:Update()
@@ -915,7 +913,7 @@ function MolochMod:UpdateRope(e)
     end
 
     rope.Parent = handler
-    rope.Target = leftHand
+    rope.Target = player
 
     rope:AddEntityFlags(EntityFlag.FLAG_NO_STATUS_EFFECTS | EntityFlag.FLAG_NO_TARGET | EntityFlag.FLAG_NO_KNOCKBACK |
       EntityFlag.FLAG_NO_PHYSICS_KNOCKBACK)
