@@ -9,5 +9,6 @@
         skinColor="1"
         canShoot = "False"
         speedmodifier = "0.4"
+        costumeSuffix="moloch"
     />
 </players>
