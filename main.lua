@@ -533,7 +533,7 @@ function MolochMod:SwingScythe()
       sprite:SetLastFrame()
     end
     playerData.isCharging = false
-    if holdTimer - threshold + 5 >= maxCharge then
+    if holdTimer - threshold + 20 >= maxCharge then
       --throw hook
       MolochMod:UseHook(player)
     end
