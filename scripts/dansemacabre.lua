@@ -23,6 +23,8 @@ local glowStage = 1
 --danse scaling
 local extraKillDanseScale = 0
 local maxDanseScale = 1.5
+--temporary stages
+local maxDanseTimer = 120
 
 --setting resetting some values
 local function onStart(_, continued)
@@ -52,6 +54,8 @@ function MolochMod:InitializeDanseMacabre(player)
     if MolochMod.PERSISTENT_DATA.KILLCOUNT ~= nil then
         killCount = MolochMod.PERSISTENT_DATA.KILL_COUNT
     end
+    --timer which makes the danse stages temporary
+    playerData.danseTimer = maxDanseTimer
     --spawn glow
     -- if glow == nil then
     --     glow = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
@@ -63,6 +67,30 @@ function MolochMod:InitializeDanseMacabre(player)
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_INIT, MolochMod.InitializeDanseMacabre)
+
+function MolochMod:EvaluateDanseTimer(player)
+    local playerData = player:GetData()
+    if killCount > 0 then
+        playerData.danseTimer = playerData.danseTimer - 1
+        if playerData.danseTimer <= 0 then
+            killCount = killCount - 1
+            extraKillDanseScale = extraKillDanseScale - 0.02
+            playerData.danseTimer = maxDanseTimer
+            if killCount % 5 == 4 then
+                if glowStage > 1 then
+                    glowStage = glowStage - 1
+                    sfx:Play(SoundEffect.SOUND_DEATH_CARD, 0.5, 0, false, 0.8)
+                    MolochMod:SetGlow(glowStage, player)
+                end
+            end
+        end
+        print("KillCount: " .. tostring(killCount))
+    elseif playerData.danseTimer < maxDanseTimer then
+        playerData.danseTimer = maxDanseTimer
+    end
+end
+
+MolochMod:AddCallback(ModCallbacks.MC_POST_PLAYER_UPDATE, MolochMod.EvaluateDanseTimer)
 
 --using danse and spawning the effect
 function MolochMod:UseDanseMacabre(collectibleType, rng, player, useFlags, activeSlot, _)
@@ -282,3 +310,13 @@ function MolochMod:ClearDanseCharge()
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_PRE_GAME_EXIT, MolochMod.ClearDanseCharge)
+
+function MolochMod:AddKillCount(num)
+    killCount = killCount + num
+end
+
+function MolochMod:AddGlowStage(num)
+    glowStage = glowStage + num
+    DANCE_DAMAGE_MULTIPLIER = DANCE_DAMAGE_MULTIPLIER +
+        (MAX_DANCE_DAMAGE_MULTIPLIER - MIN_DANCE_DAMAGE_MULTIPLIER) / 3
+end

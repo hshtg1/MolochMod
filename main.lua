@@ -892,6 +892,15 @@ function MolochMod:UseHook(player)
   hook:Update()
 end
 
+function MolochMod:AddChargeToDanse(num)
+  if glowStage + num > 4 then
+    glowStage = 4
+  else
+    glowStage = glowStage + num
+    MolochMod:AddKillCount(5)
+  end
+end
+
 --You only need Repentogon for null capsules, otherwise you dont have to use it
 function MolochMod:UpdateRope(e)
   local player = e.Parent:ToPlayer()
@@ -1043,6 +1052,7 @@ function MolochMod:UpdateRope(e)
       if e:GetData().checkEntity and e:GetData().checkEntity:Exists() then
         player:SetMinDamageCooldown(30)
         MolochMod:ClearFreezeAfterDelay(enemy, 60)
+        --rope clear condition
         if e.Position:Distance(player.Position) < enemy.Size then
           if e.Child then
             e.Child:Remove()
@@ -1052,6 +1062,8 @@ function MolochMod:UpdateRope(e)
           player.GridCollisionClass = playerGridCollision
           playerData.hookCache = nil
           playerData.isThrown = false
+          --apply 1 temporary stage of danse
+          MolochMod:AddChargeToDanse(1)
         end
       end
     end
@@ -1105,6 +1117,10 @@ function MolochMod:UpdateRope(e)
     end
     if e.Position:Distance(player.Position) < 15 then
       sfx:Stop(HOOK_SCRAPE)
+      --apply 1 temporary stage of danse
+      if e:GetData().checkEntity then
+        MolochMod:AddChargeToDanse(1)
+      end
       if e.Child then
         e.Child:Remove()
       end
