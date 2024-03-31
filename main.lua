@@ -829,7 +829,14 @@ function MolochMod:ScytheEffectUpdate(scythe)
       local room = game:GetRoom()
       for _, gridEntity in pairs(lib.FindGridEntitiesInRadius(capsule:GetPosition(), capsule:GetF1())) do
         local gridIndex = gridEntity:GetGridIndex()
-        room:DamageGrid(gridIndex, 100)
+        --sulfuric/terra synergy
+        if lib.HasItem(player, CollectibleType.COLLECTIBLE_SULFURIC_ACID) or lib.HasItem(player, CollectibleType.COLLECTIBLE_TERRA)
+            or lib.HasTearFlag(player, TearFlags.TEAR_ACID) or lib.HasTearFlag(player, TearFlags.TEAR_ROCK) then
+          room:DamageGrid(gridIndex, 100)
+          room:DestroyGrid(gridIndex, false)
+        else
+          room:DamageGrid(gridIndex, 100)
+        end
       end
       playerData.molochScythesState = 1
     end

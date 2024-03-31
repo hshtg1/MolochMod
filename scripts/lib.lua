@@ -1,6 +1,45 @@
 local lib = {}
 local game = MolochMod.Game
 
+-- AB+ compatible (and mod-safe) item checks
+function lib.HasItem(player, collectibleType, ignoreModifiers)
+	if not collectibleType or collectibleType <= 0 then return false end
+	return player:HasCollectible(collectibleType, ignoreModifiers) or false
+end
+
+function lib.HasItemEffect(player, collectibleType)
+	if not collectibleType or collectibleType <= 0 then return false end
+	return player:GetEffects():HasCollectibleEffect(collectibleType)
+end
+
+-- AB+ compatible TearFlag operations
+function lib.HasTearFlag(player, tearflag)
+	if not tearflag then return false end
+	if REPENTANCE then
+		return player.TearFlags & tearflag == tearflag
+	else
+		return player.TearFlags & tearflag ~= 0
+	end
+end
+
+function lib.AddTearFlag(entity, tearflag)
+	if not tearflag then return false end
+	if REPENTANCE then
+		entity:AddTearFlags(tearflag)
+	elseif not lib.HasTearFlag(entity, tearflag) then
+		entity.TearFlags = entity.TearFlags | tearflag
+	end
+end
+
+function lib.RemoveTearFlag(entity, tearflag)
+	if not tearflag then return false end
+	if REPENTANCE then
+		entity:ClearTearFlags(tearflag)
+	elseif lib.HasTearFlag(entity, tearflag) then
+		entity.TearFlags = entity.TearFlags - tearflag
+	end
+end
+
 -- AB+ compatible color constructor
 -- Thanks, oatmealine
 function lib.NewColor(r, g, b, a, ro, go, bo)
