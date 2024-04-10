@@ -24,7 +24,8 @@ local glowStage = 1
 local extraKillDanseScale = 0
 local maxDanseScale = 1.5
 --temporary stages
-local maxDanseTimer = 120
+local maxDanseTimer = 150
+local addedStage = false
 
 --setting resetting some values
 local function onStart(_, continued)
@@ -74,7 +75,6 @@ function MolochMod:EvaluateDanseTimer(player)
         playerData.danseTimer = playerData.danseTimer - 1
         if playerData.danseTimer <= 0 then
             killCount = killCount - 1
-            extraKillDanseScale = extraKillDanseScale - 0.02
             playerData.danseTimer = maxDanseTimer
             if killCount % 5 == 4 then
                 if glowStage > 1 then
@@ -134,6 +134,7 @@ function MolochMod:DanceEffectUpdate(dance)
         killCount = 0
         glowStage = 1
         extraKillDanseScale = 0
+        addedStage = false
         MolochMod:SetGlow(glowStage, player)
         return
     end
@@ -169,7 +170,7 @@ function MolochMod:DanceEffectUpdate(dance)
                         sfx:Play(SoundEffect.SOUND_SCAMPER, 0.78, 0, false, 0.8)
                     end
                 else
-                    entity:TakeDamage(player.Damage * DANCE_DAMAGE_MULTIPLIER, 0, EntityRef(player), 0)
+                    entity:TakeDamage(player.Damage * DANCE_DAMAGE_MULTIPLIER + 0.5, 0, EntityRef(player), 0)
                 end
             end
         end
@@ -194,9 +195,6 @@ function MolochMod:ChargeDanse(ent)
     local player
     for i = 0, Game():GetNumPlayers() - 1 do
         player = Isaac.GetPlayer(i)
-        if player:GetPlayerType() ~= molochType or not player then
-            return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
-        end
     end
     local playerData = player:GetData()
     if player:GetPlayerType() ~= molochType then
@@ -216,35 +214,46 @@ function MolochMod:ChargeDanse(ent)
             killCount = killCount + 1
             MolochMod:AddRangeDanse(1)
         end
-
-        print("KillCount:" .. tostring(killCount))
-        if (killCount % 5 == 0) then
-            DANCE_DAMAGE_MULTIPLIER = DANCE_DAMAGE_MULTIPLIER +
-                (MAX_DANCE_DAMAGE_MULTIPLIER - MIN_DANCE_DAMAGE_MULTIPLIER) / 3
-            --adding a glow to the player with kills
-            if glowStage < 4 then
-                glowStage = glowStage + 1
-                MolochMod.PERSISTENT_DATA.GLOW_STAGE = glowStage
-            end
-            --     if glow == nil then
-            --         glow = Isaac.Spawn(EntityType.ENTITY_EFFECT, GLOW_EFFECT_ID, 0, player.Position, Vector(0, 0), player)
-            --             :ToEffect()
-            --         glow:FollowParent(player)
-            --         glow:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
-            --         glow.DepthOffset = -10
-            --     end
-            MolochMod:ColorScythes()
-
-            if scythes then
-                MolochMod:SetGlow(glowStage, player)
-            end
-
-            MolochMod.PERSISTENT_DATA.KILL_COUNT = killCount
-        end
+        MolochMod:AddStage()
     end
 end
 
 MolochMod:AddCallback(ModCallbacks.MC_POST_ENTITY_KILL, MolochMod.ChargeDanse)
+
+function MolochMod:AddStage()
+    local player
+    for i = 0, Game():GetNumPlayers() - 1 do
+        player = Isaac.GetPlayer(i)
+        if player:GetPlayerType() ~= molochType or not player then
+            return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+        end
+    end
+    local playerData = player:GetData()
+    if player:GetPlayerType() ~= molochType then
+        return -- End the function early. The below code doesn't run, as long as the player isn't Moloch.
+    end
+    local scythes = playerData.scytheCache
+    local data = scythes:GetData()
+
+    playerData.danseTimer = maxDanseTimer
+    print("KillCount:" .. tostring(killCount))
+    if (killCount % 5 == 0) then
+        DANCE_DAMAGE_MULTIPLIER = DANCE_DAMAGE_MULTIPLIER +
+            (MAX_DANCE_DAMAGE_MULTIPLIER - MIN_DANCE_DAMAGE_MULTIPLIER) / 3
+        --adding a glow to the player with kills
+        if glowStage < 4 then
+            glowStage = glowStage + 1
+            MolochMod.PERSISTENT_DATA.GLOW_STAGE = glowStage
+        end
+        MolochMod:ColorScythes()
+
+        if scythes then
+            MolochMod:SetGlow(glowStage, player)
+        end
+
+        MolochMod.PERSISTENT_DATA.KILL_COUNT = killCount
+    end
+end
 
 function MolochMod:ColorScythes()
     --color the scythes redder when higher damage multiplier
@@ -315,8 +324,15 @@ function MolochMod:AddKillCount(num)
     killCount = killCount + num
 end
 
-function MolochMod:AddGlowStage(num)
-    glowStage = glowStage + num
-    DANCE_DAMAGE_MULTIPLIER = DANCE_DAMAGE_MULTIPLIER +
-        (MAX_DANCE_DAMAGE_MULTIPLIER - MIN_DANCE_DAMAGE_MULTIPLIER) / 3
+function MolochMod:AddTemporaryDanseStage()
+    if not addedStage then
+        if killCount % 5 then
+            killCount = killCount + 1
+        end
+        while killCount % 5 ~= 0 do
+            killCount = killCount + 1
+        end
+    end
+    addedStage = true
+    MolochMod:AddStage()
 end
