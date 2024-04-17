@@ -85,8 +85,10 @@ function MolochMod:EvaluateDanseTimer(player)
             end
         end
         print("KillCount: " .. tostring(killCount))
-    elseif playerData.danseTimer < maxDanseTimer then
-        playerData.danseTimer = maxDanseTimer
+    elseif playerData.danseTimer then
+        if playerData.danseTimer < maxDanseTimer then
+            playerData.danseTimer = maxDanseTimer
+        end
     end
 end
 
